@@ -1,4 +1,4 @@
-﻿# CampusDesk: Thapar Classroom Availability & Scheduling Platform
+# CampusDesk: Thapar Classroom Availability & Scheduling Platform
 
 > **Software Engineering Course Project (UCS503P — B.Tech SEM V)**  
 > **Institution:** Thapar Institute of Engineering & Technology, Patiala  
@@ -29,9 +29,9 @@ Historically, locating an available lecture hall required manually browsing thro
 
 ## ✨ 2. Key Features
 
-- 🏫 **Dynamic Academic Block Classification:** Automatically parses and categorizes rooms (T106 → **T Block**, LT303 → **LT Block**, F201 → **F Block**, E104 → **E Block**, L302 → **L Block**, LP109 → **LP Block**) using dynamic regex extraction rather than hardcoded static arrays.
+- 🏫 **Dynamic Academic Block Classification:** Automatically parses and categorizes rooms (`T106` → **T Block**, `LT303` → **LT Block**, `F201` → **F Block**, `E104` → **E Block**, `L302` → **L Block**, `LP109` → **LP Block**) using dynamic regex extraction rather than hardcoded static arrays.
 - ⚡ **Real-Time & Future Availability Calculation:** Converts timestamps into normalized minutes from midnight to evaluate exact room occupancy for any day of the week and standard timetable time slots.
-- 🔬 **Laboratory Exclusion Logic (Requirement 18):** Strictly excludes specialized lab sessions ([Lab]) from regular lecture hall occupancy calculations, ensuring accurate lecture room discovery.
+- 🔬 **Laboratory Exclusion Logic (Requirement 18):** Strictly excludes specialized lab sessions (`[Lab]`) from regular lecture hall occupancy calculations, ensuring accurate lecture room discovery.
 - 🛠️ **Classroom Facility Complaint & Maintenance Engine:** Allows faculty and student heads to report broken projectors, audio equipment, or seating issues. Classrooms with active tickets are dynamically tagged as *Issue Reported* or *Under Maintenance*.
 - 🛡️ **Role-Based Access Control (RBAC):** Built on JWT authentication with distinct privilege levels for **TEACHER**, **ORGANISATION_HEAD**, and **ADMIN** (with dedicated ticket resolution & governance workflows).
 - 📅 **Detailed Classroom Timetable Drawer:** Interactive schedule modal allowing instant inspection of any room's complete Monday–Saturday lecture schedule.
@@ -41,17 +41,17 @@ Historically, locating an available lecture hall required manually browsing thro
 
 ## 🛠️ 3. Tech Stack
 
-- **Frontend (/code/client):**
+- **Frontend (`/code/client`):**
   - **Framework:** React 18 + Vite 5
   - **Styling:** Tailwind CSS + PostCSS
   - **Icons:** Lucide React
   - **Navigation:** React Router DOM (v6)
   - **HTTP Layer:** Axios with Bearer Authorization interceptor
 
-- **Backend (/code/server):**
+- **Backend (`/code/server`):**
   - **Runtime:** Node.js + Express.js 4
   - **Database & ODM:** MongoDB + Mongoose 8 (with graceful in-memory fallback)
-  - **Authentication:** JSON Web Tokens (jsonwebtoken) + Password Hashing (cryptjs)
+  - **Authentication:** JSON Web Tokens (`jsonwebtoken`) + Password Hashing (`bcryptjs`)
   - **Configuration:** Dotenv & CORS
 
 ---
@@ -60,7 +60,7 @@ Historically, locating an available lecture hall required manually browsing thro
 
 This repository is organized according to the **TIET UCS503 Software Engineering Course Project Template**:
 
-`
+```text
 CampusDesk/
 ├── .github/
 │   └── workflows/
@@ -94,7 +94,7 @@ CampusDesk/
 ├── mkdocs.yml                        # Documentation site configuration
 ├── pyproject.toml                    # Python metadata and tool configs
 └── README.md                         # Main repository overview (this file)
-`
+```
 
 ---
 
@@ -106,7 +106,7 @@ CampusDesk/
 - MongoDB instance (or MongoDB Atlas connection string)
 
 ### 1. Backend Setup
-`ash
+```bash
 # Navigate to the server folder
 cd code/server
 
@@ -115,11 +115,11 @@ npm install
 
 # Start development server
 npm run dev
-`
-*The server will start on http://localhost:5000 and automatically seed default users, classrooms, and timetable entries if running for the first time.*
+```
+*The server will start on `http://localhost:5000` and automatically seed default users, classrooms, and timetable entries if running for the first time.*
 
 ### 2. Frontend Setup
-`ash
+```bash
 # Open a new terminal and navigate to the client folder
 cd code/client
 
@@ -128,8 +128,8 @@ npm install
 
 # Start Vite development server
 npm run dev
-`
-*Open your browser and navigate to http://localhost:3000.*
+```
+*Open your browser and navigate to `http://localhost:3000`.*
 
 ---
 
@@ -137,15 +137,15 @@ npm run dev
 
 | Method | Endpoint | Access | Description |
 |:---:|:---|:---:|:---|
-| POST | /api/auth/signup | Public | Register new user account |
-| POST | /api/auth/login | Public | Authenticate user and receive JWT token |
-| GET | /api/auth/me | Private | Retrieve logged-in user profile |
-| GET | /api/classrooms/availability | Public | Query availability with day, 	ime, lock, and search |
-| GET | /api/classrooms/:roomNumber | Public | Retrieve single classroom details and weekly schedule |
-| GET | /api/tickets | Private | List reported issues (filtered by status or room) |
-| POST | /api/tickets | Private | Log a classroom maintenance complaint |
-| PUT | /api/tickets/:id/status | Admin | Update complaint status (PENDING → UNDER_MAINTENANCE → RESOLVED) |
-| GET | /api/timetable | Public | Query raw timetable entries |
+| `POST` | `/api/auth/signup` | Public | Register new user account |
+| `POST` | `/api/auth/login` | Public | Authenticate user and receive JWT token |
+| `GET` | `/api/auth/me` | Private | Retrieve logged-in user profile |
+| `GET` | `/api/classrooms/availability` | Public | Query availability with `day`, `time`, `block`, and `search` |
+| `GET` | `/api/classrooms/:roomNumber` | Public | Retrieve single classroom details and weekly schedule |
+| `GET` | `/api/tickets` | Private | List reported issues (filtered by status or room) |
+| `POST` | `/api/tickets` | Private | Log a classroom maintenance complaint |
+| `PUT` | `/api/tickets/:id/status` | Admin | Update complaint status (`PENDING` → `UNDER_MAINTENANCE` → `RESOLVED`) |
+| `GET` | `/api/timetable` | Public | Query raw timetable entries |
 
 ---
 
