@@ -28,6 +28,10 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
 
+    if (!formData.email.trim().toLowerCase().endsWith('@thapar.edu')) {
+      return setError('Registration is restricted to official @thapar.edu institutional email addresses.');
+    }
+
     if (formData.password !== formData.confirmPassword) {
       return setError('Passwords do not match.');
     }

@@ -12,7 +12,8 @@ import {
   HelpCircle,
   X,
   Wrench,
-  AlertTriangle
+  AlertTriangle,
+  CalendarCheck2
 } from 'lucide-react';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
@@ -31,6 +32,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClassroomModal, setSelectedClassroomModal] = useState(null);
   const [selectedTicketModal, setSelectedTicketModal] = useState(null);
+  const [bookModalClassroom, setBookModalClassroom] = useState(null);
 
   // Fetch availability data whenever filters change
   const fetchAvailability = async () => {
@@ -74,7 +76,7 @@ export default function DashboardPage() {
 
   const hasActiveFilters = selectedDay !== '' || selectedTime !== '' || selectedBlock !== 'ALL' || searchQuery !== '';
 
-  const summary = data?.summary || { totalClassrooms: 0, availableCount: 0, occupiedCount: 0, maintenanceCount: 0, pendingIssueCount: 0, blockSummary: {} };
+  const summary = data?.summary || { totalClassrooms: 0, availableCount: 0, occupiedCount: 0, bookedCount: 0, maintenanceCount: 0, pendingIssueCount: 0, blockSummary: {} };
   const classrooms = data?.classrooms || [];
   const meta = data?.meta || {};
 
@@ -86,8 +88,12 @@ export default function DashboardPage() {
   const availableBlocks = ['ALL', 'T Block', 'LT Block', 'F Block', 'E Block', 'L Block', 'LP Block'];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-darkbg text-slate-900 dark:text-slate-100 transition-colors pb-16">
-      <Navbar onRefreshData={fetchAvailability} />
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-darkcard/30 bg-slate-50 dark:bg-darkbg text-slate-900 dark:text-slate-100 transition-colors pb-16">
+      <Navbar 
+        onRefreshData={fetchAvailability} 
+        bookModalInitialRoom={bookModalClassroom}
+        onClearBookInitialRoom={() => setBookModalClassroom(null)}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex-1 w-full space-y-8">
         
@@ -202,7 +208,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Summary Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
           
           <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
             <div>
@@ -247,6 +253,20 @@ export default function DashboardPage() {
           </div>
 
           <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                Booked / Reserved
+              </p>
+              <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+                {summary.bookedCount || 0}
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
+              <CalendarCheck2 className="w-6 h-6" />
+            </div>
+          </div>
+
+          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between col-span-2 sm:col-span-1">
             <div>
               <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                 Issues / Maintenance
@@ -299,6 +319,7 @@ export default function DashboardPage() {
                   classroom={room}
                   onViewSchedule={(cls) => setSelectedClassroomModal(cls)}
                   onViewTicket={(tkt) => setSelectedTicketModal(tkt)}
+                  onBookRoom={(cls) => setBookModalClassroom(cls.roomNumber)}
                 />
               ))}
             </div>

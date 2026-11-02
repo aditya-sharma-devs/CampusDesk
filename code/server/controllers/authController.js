@@ -44,6 +44,13 @@ exports.signup = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    if (!normalizedEmail.endsWith('@thapar.edu')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Registration restricted: Only official @thapar.edu institutional email addresses are permitted.'
+      });
+    }
+
     try {
       const existingUser = await User.findOne({ email: normalizedEmail });
       if (existingUser) {
@@ -121,6 +128,13 @@ exports.login = async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail.endsWith('@thapar.edu')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Access restricted: Please enter an official @thapar.edu email address.'
+      });
+    }
 
     try {
       const user = await User.findOne({ email: normalizedEmail }).select('+password');

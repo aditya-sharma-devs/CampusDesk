@@ -1,10 +1,25 @@
 import React from 'react';
-import { CheckCircle2, XCircle, Clock, BookOpen, User, Users, Calendar, ArrowRight, Wrench, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  BookOpen, 
+  User, 
+  Users, 
+  Calendar, 
+  ArrowRight, 
+  Wrench, 
+  AlertTriangle, 
+  CalendarCheck2,
+  CalendarPlus
+} from 'lucide-react';
 import { formatTo12Hour } from '../utils/timeFormat';
 
-export default function ClassroomCard({ classroom, onViewSchedule, onViewTicket }) {
+export default function ClassroomCard({ classroom, onViewSchedule, onViewTicket, onBookRoom }) {
   const isAvailable = classroom.status === 'AVAILABLE';
+  const isBooked = classroom.status === 'BOOKED';
   const occ = classroom.currentOccupancy;
+  const booking = classroom.currentBooking;
   const ticket = classroom.activeTicket;
 
   const hasActiveIssue = ticket && (ticket.status === 'UNDER_MAINTENANCE' || ticket.status === 'PENDING');
@@ -15,6 +30,8 @@ export default function ClassroomCard({ classroom, onViewSchedule, onViewTicket 
         ? 'bg-white dark:bg-darkcard border-amber-300 dark:border-amber-800/80 hover:border-amber-500'
         : ticket && ticket.status === 'PENDING'
         ? 'bg-white dark:bg-darkcard border-yellow-300 dark:border-yellow-800/80 hover:border-yellow-500'
+        : isBooked
+        ? 'bg-white dark:bg-darkcard border-indigo-200 dark:border-indigo-900 hover:border-indigo-500'
         : isAvailable
         ? 'bg-white dark:bg-darkcard border-slate-200/80 dark:border-darkborder hover:border-emerald-500/50 dark:hover:border-emerald-500/40'
         : 'bg-white dark:bg-darkcard border-slate-200/80 dark:border-darkborder hover:border-rose-500/50 dark:hover:border-rose-500/40'
@@ -41,12 +58,19 @@ export default function ClassroomCard({ classroom, onViewSchedule, onViewTicket 
           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase shadow-sm shrink-0 ${
             isAvailable
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60'
+              : isBooked
+              ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800/60'
               : 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/60'
           }`}>
             {isAvailable ? (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 Available
+              </>
+            ) : isBooked ? (
+              <>
+                <CalendarCheck2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                Booked
               </>
             ) : (
               <>
@@ -57,7 +81,7 @@ export default function ClassroomCard({ classroom, onViewSchedule, onViewTicket 
           </span>
         </div>
 
-        {/* Dynamic Facility & Ticket Tag Banner Slot (Uniform structure for all cards) */}
+        {/* Dynamic Facility & Ticket Tag Banner Slot */}
         <div className="mb-3">
           {hasActiveIssue ? (
             <button
@@ -92,15 +116,55 @@ export default function ClassroomCard({ classroom, onViewSchedule, onViewTicket 
         </div>
 
         {/* Main Content Info Area */}
-        <div className="my-3 pt-3 border-t border-slate-100 dark:border-slate-800/70 min-h-[80px]">
+        <div className="my-3 pt-3 border-t border-slate-100 dark:border-slate-800/70 min-h-[90px]">
           {isAvailable ? (
-            <div className="flex flex-col justify-center h-full">
-              <div className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-medium text-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Free during this time slot
+            <div className="flex flex-col justify-between h-full space-y-2">
+              <div>
+                <div className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-medium text-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Free during this time slot
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Ready for lecture, guest seminar, makeup class, or student club event.
+                </p>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                Available for immediate guest lecture, student event, or faculty study session.
+
+              {/* Book Room Button */}
+              <button
+                onClick={() => onBookRoom && onBookRoom(classroom)}
+                className="inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold transition-all shadow-sm self-start mt-1"
+              >
+                <CalendarPlus className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span>Book This Room</span>
+              </button>
+            </div>
+          ) : isBooked && booking ? (
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CalendarCheck2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
+                    {booking.description}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 shrink-0">
+                  {booking.category}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-slate-600 dark:text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="truncate">By: <strong className="text-slate-700 dark:text-slate-300">{booking.requestedBy?.name}</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{formatTo12Hour(booking.startTime)} - {formatTo12Hour(booking.endTime)}</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                Approved reservation • Ref: {booking.bookingId}
               </p>
             </div>
           ) : occ ? (

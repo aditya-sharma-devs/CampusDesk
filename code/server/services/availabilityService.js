@@ -9,6 +9,7 @@ const { timeToMinutes, getCurrentDayName, getCurrentTimeStr } = require('../util
 const { extractBlockFromRoom } = require('../utils/blockUtils');
 const { sampleClassrooms, sampleTimetableEntries } = require('../data/sampleTimetable');
 const { getUnresolvedTicketsMap } = require('../controllers/ticketController');
+const { getApprovedBookingsForDay } = require('../controllers/bookingController');
 
 /**
  * Calculates classroom availability for a given day and time slot.
@@ -45,6 +46,9 @@ async function getClassroomAvailability({ day, time, block, search }) {
   // Fetch active unresolved tickets mapped by room number (ONLY PENDING & UNDER_MAINTENANCE)
   const activeTicketsMap = await getUnresolvedTicketsMap();
 
+  // Fetch approved room bookings for the target day
+  const approvedBookingsToday = await getApprovedBookingsForDay(targetDay);
+
   // Evaluate status and ticket tags for each classroom
   const processedClassrooms = classroomsData.map(room => {
     const roomNumber = room.roomNumber.toUpperCase();
@@ -52,6 +56,9 @@ async function getClassroomAvailability({ day, time, block, search }) {
 
     // Get all timetable entries for this room today
     const roomEntriesToday = entriesData.filter(e => e.classroom.toUpperCase() === roomNumber);
+
+    // Get approved bookings for this room today
+    const roomBookingsToday = approvedBookingsToday.filter(b => b.roomNumber.toUpperCase() === roomNumber);
 
     // Active occupancy check (Requirement 18: EXCLUDE LABs from lecture occupancy)
     const activeEntry = roomEntriesToday.find(entry => {
@@ -65,11 +72,40 @@ async function getClassroomAvailability({ day, time, block, search }) {
       return targetMinutes >= startMins && targetMinutes < endMins;
     });
 
-    const isOccupied = Boolean(activeEntry);
+    // Active approved booking check
+    const activeBooking = roomBookingsToday.find(booking => {
+      const startMins = timeToMinutes(booking.startTime);
+      const endMins = timeToMinutes(booking.endTime);
+      return targetMinutes >= startMins && targetMinutes < endMins;
+    });
+
+    let status = 'AVAILABLE';
+    if (activeEntry) {
+      status = 'OCCUPIED';
+    } else if (activeBooking) {
+      status = 'BOOKED';
+    }
     
     // Active Ticket is ONLY present if status is PENDING or UNDER_MAINTENANCE.
     // If ticket is RESOLVED or does not exist, activeTicket is null!
     const activeTicket = activeTicketsMap[roomNumber] || null;
+
+    // Combine timetable lectures and approved bookings for complete daily schedule
+    const bookingScheduleEntries = roomBookingsToday.map(b => ({
+      batch: b.category || 'Special Event',
+      subject: `[RESERVED] ${b.description}`,
+      subjectCode: b.bookingId,
+      startTime: b.startTime,
+      endTime: b.endTime,
+      classroom: b.roomNumber,
+      type: 'BOOKING',
+      faculty: b.requestedBy?.name || 'Reserved Booking',
+      isBooking: true
+    }));
+
+    const combinedSchedule = [...roomEntriesToday, ...bookingScheduleEntries].sort(
+      (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
+    );
 
     return {
       id: room._id || roomNumber,
@@ -77,7 +113,7 @@ async function getClassroomAvailability({ day, time, block, search }) {
       block: computedBlock,
       roomType: room.roomType || 'LECTURE',
       capacity: room.capacity || 60,
-      status: isOccupied ? 'OCCUPIED' : 'AVAILABLE',
+      status,
       // Active Maintenance / Issue Tag (null if RESOLVED or no ticket)
       activeTicket: activeTicket ? {
         id: activeTicket._id || activeTicket.ticketId,
@@ -97,7 +133,16 @@ async function getClassroomAvailability({ day, time, block, search }) {
         faculty: activeEntry.faculty || 'Faculty Member',
         type: activeEntry.type
       } : null,
-      todaySchedule: roomEntriesToday.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+      currentBooking: activeBooking ? {
+        bookingId: activeBooking.bookingId,
+        description: activeBooking.description,
+        category: activeBooking.category,
+        requestedBy: activeBooking.requestedBy,
+        startTime: activeBooking.startTime,
+        endTime: activeBooking.endTime,
+        slot: activeBooking.slot
+      } : null,
+      todaySchedule: combinedSchedule
     };
   });
 
@@ -113,7 +158,8 @@ async function getClassroomAvailability({ day, time, block, search }) {
     filtered = filtered.filter(item => 
       item.roomNumber.includes(q) || 
       item.block.toUpperCase().includes(q) ||
-      (item.currentOccupancy && item.currentOccupancy.subject.toUpperCase().includes(q))
+      (item.currentOccupancy && item.currentOccupancy.subject.toUpperCase().includes(q)) ||
+      (item.currentBooking && item.currentBooking.description.toUpperCase().includes(q))
     );
   }
 
@@ -121,6 +167,7 @@ async function getClassroomAvailability({ day, time, block, search }) {
   const totalClassrooms = filtered.length;
   const availableCount = filtered.filter(c => c.status === 'AVAILABLE').length;
   const occupiedCount = filtered.filter(c => c.status === 'OCCUPIED').length;
+  const bookedCount = filtered.filter(c => c.status === 'BOOKED').length;
 
   // Maintenance Count includes ALL classrooms with an active issue (UNDER_MAINTENANCE or PENDING)
   // When a ticket is marked RESOLVED, activeTicket becomes null, automatically reducing this count!
@@ -139,6 +186,7 @@ async function getClassroomAvailability({ day, time, block, search }) {
       totalClassrooms,
       availableCount,
       occupiedCount,
+      bookedCount,
       maintenanceCount,
       pendingIssueCount
     },

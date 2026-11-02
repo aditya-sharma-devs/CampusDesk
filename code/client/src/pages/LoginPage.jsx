@@ -17,6 +17,10 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!email.trim().toLowerCase().endsWith('@thapar.edu')) {
+      return setError('Please sign in using your official @thapar.edu institutional email address.');
+    }
+
     setLoading(true);
 
     const res = await login(email, password);
