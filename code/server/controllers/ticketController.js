@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Ticket = require('../models/Ticket');
 const { extractBlockFromRoom } = require('../utils/blockUtils');
 
@@ -138,7 +139,10 @@ exports.updateTicketStatus = async (req, res) => {
     let updatedTicket = null;
 
     try {
-      let ticket = await Ticket.findById(id);
+      let ticket = null;
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        ticket = await Ticket.findById(id);
+      }
       if (!ticket) {
         ticket = await Ticket.findOne({ ticketId: id });
       }

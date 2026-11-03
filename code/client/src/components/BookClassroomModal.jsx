@@ -20,7 +20,8 @@ export default function BookClassroomModal({
   initialRoomNumber = '', 
   initialDay = '', 
   onClose, 
-  onSuccess 
+  onBookingCreated,
+  onOpenMyBookings
 }) {
   const { user } = useAuth();
   
@@ -114,7 +115,7 @@ export default function BookClassroomModal({
 
       if (res.data.success) {
         setCreatedBooking(res.data.data);
-        if (onSuccess) onSuccess(res.data.data);
+        if (onBookingCreated) onBookingCreated(res.data.data);
       } else {
         setError(res.data.message || 'Failed to submit booking request.');
       }
@@ -193,12 +194,26 @@ export default function BookClassroomModal({
               </div>
             </div>
 
-            <button
-              onClick={onClose}
-              className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/25 transition-all"
-            >
-              Done & Close
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  if (onOpenMyBookings) onOpenMyBookings();
+                }}
+                className="flex-1 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
+              >
+                <CalendarCheck2 className="w-4 h-4" />
+                View in My Bookings
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs transition-colors"
+              >
+                Done
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">

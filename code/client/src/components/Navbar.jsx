@@ -252,9 +252,12 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
         <BookClassroomModal
           initialRoomNumber={bookModalInitialRoom || ''}
           onClose={handleCloseBookModal}
-          onSuccess={() => {
-            handleCloseBookModal();
+          onBookingCreated={() => {
             if (onRefreshData) onRefreshData();
+          }}
+          onOpenMyBookings={() => {
+            handleCloseBookModal();
+            setMyBookingsOpen(true);
           }}
         />
       )}

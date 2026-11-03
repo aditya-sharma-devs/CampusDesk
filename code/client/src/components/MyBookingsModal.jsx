@@ -20,8 +20,8 @@ export default function MyBookingsModal({ onClose, onBookingsChanged }) {
   const [cancellingId, setCancellingId] = useState(null);
   const [error, setError] = useState('');
 
-  const fetchMyBookings = async () => {
-    setLoading(true);
+  const fetchMyBookings = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     setError('');
     try {
       const res = await api.get('/bookings/my');
@@ -30,14 +30,18 @@ export default function MyBookingsModal({ onClose, onBookingsChanged }) {
       }
     } catch (err) {
       console.error('Failed to load user bookings:', err);
-      setError('Failed to fetch personal bookings. Please try again.');
+      if (!isBackground) setError('Failed to fetch personal bookings. Please try again.');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchMyBookings();
+    const interval = setInterval(() => {
+      fetchMyBookings(true);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleCancel = async (bookingId) => {

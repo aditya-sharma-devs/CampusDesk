@@ -8,8 +8,8 @@ export default function AdminTicketPanelModal({ onClose, onTicketUpdated }) {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [updatingId, setUpdatingId] = useState(null);
 
-  const fetchTickets = async () => {
-    setLoading(true);
+  const fetchTickets = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const res = await api.get('/tickets');
       if (res.data.success) {
@@ -18,12 +18,16 @@ export default function AdminTicketPanelModal({ onClose, onTicketUpdated }) {
     } catch (err) {
       console.error('Failed to fetch admin tickets:', err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTickets();
+    const interval = setInterval(() => {
+      fetchTickets(true);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleUpdateStatus = async (ticketId, newStatus) => {

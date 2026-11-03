@@ -34,9 +34,9 @@ export default function DashboardPage() {
   const [selectedTicketModal, setSelectedTicketModal] = useState(null);
   const [bookModalClassroom, setBookModalClassroom] = useState(null);
 
-  // Fetch availability data whenever filters change
-  const fetchAvailability = async () => {
-    setLoading(true);
+  // Fetch availability data whenever filters change (supports seamless background updates)
+  const fetchAvailability = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const params = {};
       if (selectedDay) params.day = selectedDay;
@@ -51,7 +51,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Failed to fetch availability report:', err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -66,6 +66,28 @@ export default function DashboardPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Live Auto-Refresh Engine: polls in background every 8s & auto-refreshes on window focus / tab switch
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAvailability(true);
+    }, 8000);
+
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAvailability(true);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [selectedDay, selectedTime, selectedBlock, searchQuery]);
 
   const resetFilters = () => {
     setSelectedDay('');
@@ -289,13 +311,19 @@ export default function DashboardPage() {
               <Layers className="w-5 h-5 text-thapar-500" />
               Classroom Directory
             </h2>
-            <button
-              onClick={fetchAvailability}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-sm"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+            <div className="flex items-center gap-2.5">
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live Sync Active</span>
+              </div>
+              <button
+                onClick={() => fetchAvailability(false)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-sm"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
           </div>
 
           {loading ? (

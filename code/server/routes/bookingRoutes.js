@@ -16,6 +16,7 @@ router.post('/', createBooking);
 router.get('/', getAllBookings);
 router.get('/my', getMyBookings);
 router.put('/:id/status', authorize('ADMIN'), updateBookingStatus);
+router.patch('/:id/status', authorize('ADMIN'), updateBookingStatus);
 router.delete('/:id', cancelBooking);
 
 module.exports = router;

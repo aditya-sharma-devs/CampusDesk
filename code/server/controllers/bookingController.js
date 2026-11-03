@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const TimetableEntry = require('../models/TimetableEntry');
 const { extractBlockFromRoom } = require('../utils/blockUtils');
@@ -274,17 +275,19 @@ exports.updateBookingStatus = async (req, res) => {
 
     let booking = null;
     try {
-      booking = await Booking.findById(id);
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        booking = await Booking.findById(id);
+      }
       if (!booking) {
         booking = await Booking.findOne({ bookingId: id });
       }
     } catch (err) {
-      // Memory fallback
+      console.warn('Booking lookup fallback in memory:', err.message);
     }
 
     // In-memory fallback if not found in DB
     const memIndex = memoryBookings.findIndex(
-      b => b._id === id || b.bookingId === id || String(b._id) === String(id)
+      b => String(b._id) === String(id) || b.bookingId === id
     );
 
     const currentBookingData = booking || (memIndex !== -1 ? memoryBookings[memIndex] : null);
@@ -376,12 +379,14 @@ exports.cancelBooking = async (req, res) => {
 
     let booking = null;
     try {
-      booking = await Booking.findById(id);
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        booking = await Booking.findById(id);
+      }
       if (!booking) booking = await Booking.findOne({ bookingId: id });
     } catch (err) {}
 
     const memIndex = memoryBookings.findIndex(
-      b => b._id === id || b.bookingId === id || String(b._id) === String(id)
+      b => String(b._id) === String(id) || b.bookingId === id
     );
 
     const bData = booking || (memIndex !== -1 ? memoryBookings[memIndex] : null);
@@ -423,9 +428,13 @@ exports.cancelBooking = async (req, res) => {
 
 // Helper: Get map of active approved bookings for a specific day
 exports.getApprovedBookingsForDay = async (day) => {
+  if (!day) return [];
   let approved = [];
   try {
-    approved = await Booking.find({ day, status: 'APPROVED' }).lean();
+    approved = await Booking.find({ 
+      day: { $regex: new RegExp(`^${day}$`, 'i') }, 
+      status: 'APPROVED' 
+    }).lean();
   } catch (err) {
     approved = memoryBookings.filter(b => b.day.toLowerCase() === day.toLowerCase() && b.status === 'APPROVED');
   }

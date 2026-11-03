@@ -23,8 +23,11 @@ import {
   ChevronRight
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import { useAuth } from '../context/AuthContext';
 
 export default function LandingPage() {
+  const { user } = useAuth();
+
   // Smooth scroll handler for hero CTA button
   const scrollToPreview = () => {
     const previewElement = document.getElementById('preview-section');
@@ -73,12 +76,12 @@ export default function LandingPage() {
               <ArrowDown className="w-4 h-4 animate-bounce" />
             </button>
 
-            {/* Secondary Action Button: Directs to sign in */}
+            {/* Secondary Action Button: Directs to dashboard or sign in */}
             <Link
-              to="/login"
+              to={user ? "/dashboard" : "/login"}
               className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-sm flex items-center justify-center gap-2"
             >
-              Faculty Sign In
+              {user ? "Open Dashboard" : "Faculty Sign In"}
               <ArrowRight className="w-4 h-4 text-slate-400" />
             </Link>
           </div>

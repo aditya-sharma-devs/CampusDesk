@@ -23,8 +23,8 @@ export default function AdminBookingPanelModal({ onClose, onBookingUpdated }) {
   const [updatingId, setUpdatingId] = useState(null);
   const [remarksMap, setRemarksMap] = useState({});
 
-  const fetchBookings = async () => {
-    setLoading(true);
+  const fetchBookings = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const res = await api.get('/bookings');
       if (res.data.success) {
@@ -33,12 +33,16 @@ export default function AdminBookingPanelModal({ onClose, onBookingUpdated }) {
     } catch (err) {
       console.error('Failed to fetch admin bookings:', err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchBookings();
+    const interval = setInterval(() => {
+      fetchBookings(true);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleUpdateStatus = async (bookingId, newStatus) => {
