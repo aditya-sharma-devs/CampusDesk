@@ -9,7 +9,13 @@ import {
   Wrench, 
   CalendarPlus, 
   CalendarCheck2,
-  GraduationCap
+  GraduationCap,
+  LayoutGrid,
+  KeyRound,
+  BookOpenCheck,
+  Calendar,
+  Sparkles,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -18,16 +24,19 @@ import AdminTicketPanelModal from './AdminTicketPanelModal';
 import BookClassroomModal from './BookClassroomModal';
 import MyBookingsModal from './MyBookingsModal';
 import AdminBookingPanelModal from './AdminBookingPanelModal';
+import ChangePasswordModal from './ChangePasswordModal';
 
 export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBookInitialRoom }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [appsMenuOpen, setAppsMenuOpen] = useState(false);
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [bookModalOpen, setBookModalOpen] = useState(false);
   const [myBookingsOpen, setMyBookingsOpen] = useState(false);
   const [adminBookingsOpen, setAdminBookingsOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const isStudent = user?.role === 'STUDENT';
   const isAdmin = user?.role === 'ADMIN';
@@ -97,79 +106,253 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
 
             {user ? (
               <>
-                {/* Student Identity Pill */}
-                {isStudent && (
-                  <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                    <GraduationCap className="w-3.5 h-3.5" />
-                    <span>Student</span>
-                  </div>
-                )}
+                {/* Chrome-Style Apps Launcher Button (3x3 Grid) */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setAppsMenuOpen(!appsMenuOpen);
+                      setDropdownOpen(false);
+                    }}
+                    className={`p-2.5 rounded-2xl border transition-all duration-200 flex items-center justify-center ${
+                      appsMenuOpen
+                        ? 'bg-thapar-50 border-thapar-300 text-thapar-700 dark:bg-thapar-950/80 dark:border-thapar-700 dark:text-thapar-300 shadow-md ring-2 ring-thapar-500/20'
+                        : 'border-slate-200/90 dark:border-darkborder bg-white dark:bg-darkcard text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm'
+                    }`}
+                    title="CampusDesk Apps & Tools"
+                  >
+                    <LayoutGrid className="w-4.5 h-4.5" />
+                  </button>
 
-                {/* Faculty & Admin Only Controls */}
-                {!isStudent && (
-                  <>
-                    {/* Book Room Button */}
-                    <button
-                      onClick={() => setBookModalOpen(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors shadow-sm"
-                      title="Request an empty classroom booking"
+                  {/* Apps Launcher Floating Popover Window */}
+                  {appsMenuOpen && (
+                    <div
+                      className="absolute right-0 mt-2.5 w-80 sm:w-84 rounded-3xl bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder shadow-2xl p-4.5 z-50 animate-in fade-in slide-in-from-top-2"
+                      onMouseLeave={() => setAppsMenuOpen(false)}
                     >
-                      <CalendarPlus className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                      <span className="hidden sm:inline">Book Room</span>
-                    </button>
+                      {/* Header of Square Window */}
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-darkborder">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-thapar-600 text-white flex items-center justify-center">
+                            <School className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-white leading-none">
+                              CampusDesk Apps
+                            </h4>
+                            <p className="text-[10px] text-slate-400 mt-0.5">Quick Actions & Services</p>
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleInfo.pillClass}`}>
+                          {roleInfo.label}
+                        </span>
+                      </div>
 
-                    {/* My Bookings Button */}
-                    <button
-                      onClick={() => setMyBookingsOpen(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-sm"
-                      title="View my booking requests and approval status"
-                    >
-                      <CalendarCheck2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                      <span className="hidden sm:inline">My Bookings</span>
-                    </button>
+                      {/* Grid of App Tiles */}
+                      <div className="grid grid-cols-2 gap-2.5">
+                        
+                        {/* FACULTY / ORGANISATION TILES */}
+                        {isFacultyOrOrg && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setBookModalOpen(true);
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <CalendarPlus className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Book Room</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Request empty hall</span>
+                            </button>
 
-                    {/* Report Issue Button - For Faculty & Org */}
-                    {!isAdmin && (
-                      <button
-                        onClick={() => setTicketModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors shadow-sm"
-                        title="Report classroom maintenance issue"
-                      >
-                        <Wrench className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                        <span className="hidden md:inline">Report Issue</span>
-                      </button>
-                    )}
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setMyBookingsOpen(true);
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <CalendarCheck2 className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">My Bookings</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Track approval status</span>
+                            </button>
 
-                    {/* Admin Booking Approvals Button */}
-                    {isAdmin && (
-                      <button
-                        onClick={() => setAdminBookingsOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-800 dark:text-indigo-200 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors shadow-sm"
-                        title="Approve or Reject Classroom Bookings"
-                      >
-                        <CalendarCheck2 className="w-3.5 h-3.5 text-indigo-600" />
-                        <span className="hidden lg:inline">Booking Approvals</span>
-                      </button>
-                    )}
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setTicketModalOpen(true);
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-amber-50/80 dark:hover:bg-amber-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <Wrench className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Report Issue</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Facility maintenance</span>
+                            </button>
 
-                    {/* Admin Maintenance Panel Button */}
-                    {isAdmin && (
-                      <button
-                        onClick={() => setAdminPanelOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-thapar-800 dark:text-thapar-200 bg-thapar-50 dark:bg-thapar-950/60 border border-thapar-200 dark:border-thapar-800 hover:bg-thapar-100 dark:hover:bg-thapar-900/50 transition-colors shadow-sm"
-                        title="Admin Complaint Governance"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-thapar-600" />
-                        <span className="hidden md:inline">Maintenance Panel</span>
-                      </button>
-                    )}
-                  </>
-                )}
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setChangePasswordOpen(true);
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-sky-50/80 dark:hover:bg-sky-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <KeyRound className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Password</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Change credentials</span>
+                            </button>
+                          </>
+                        )}
+
+                        {/* ADMIN TILES */}
+                        {isAdmin && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setAdminBookingsOpen(true);
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <CalendarCheck2 className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Approvals</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Review room bookings</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setAdminPanelOpen(true);
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-amber-50/80 dark:hover:bg-amber-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <ShieldCheck className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Maintenance</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Resolve tickets</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setBookModalOpen(true);
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-blue-50/80 dark:hover:bg-blue-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <CalendarPlus className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Book Room</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Direct booking</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setMyBookingsOpen(true);
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <Calendar className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">All Bookings</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Reservation list</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setChangePasswordOpen(true);
+                              }}
+                              className="col-span-2 flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-sky-50/80 dark:hover:bg-sky-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-all text-left group"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                                  <KeyRound className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <span className="text-xs font-extrabold text-slate-900 dark:text-white block">Security & Password</span>
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Change admin password</span>
+                                </div>
+                              </div>
+                            </button>
+                          </>
+                        )}
+
+                        {/* STUDENT TILES */}
+                        {isStudent && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                navigate('/dashboard');
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <BookOpenCheck className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Vacant Rooms</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Find study spots</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                navigate('/dashboard');
+                              }}
+                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-blue-50/80 dark:hover:bg-blue-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 transition-all text-left group"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                                <Calendar className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Timetables</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Weekly schedules</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setAppsMenuOpen(false);
+                                setChangePasswordOpen(true);
+                              }}
+                              className="col-span-2 flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-sky-50/80 dark:hover:bg-sky-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-all text-left group"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                                  <KeyRound className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <span className="text-xs font-extrabold text-slate-900 dark:text-white block">Change Password</span>
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Account security settings</span>
+                                </div>
+                              </div>
+                            </button>
+                          </>
+                        )}
+
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Profile Dropdown */}
                 <div className="relative">
                   <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    onClick={() => {
+                      setDropdownOpen(!dropdownOpen);
+                      setAppsMenuOpen(false);
+                    }}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-darkborder hover:bg-slate-100 dark:hover:bg-darkcard transition-colors focus:outline-none"
                   >
                     <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-thapar-600 dark:text-thapar-400 flex items-center justify-center font-bold text-sm">
@@ -196,72 +379,19 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
                         </span>
                       </div>
 
-                      {/* Non-Student Actions in Dropdown */}
-                      {!isStudent && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setDropdownOpen(false);
-                              setBookModalOpen(true);
-                            }}
-                            className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left"
-                          >
-                            <CalendarPlus className="w-4 h-4 text-indigo-500" />
-                            Book Classroom
-                          </button>
+                      {/* Change Password in Dropdown */}
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          setChangePasswordOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left"
+                      >
+                        <KeyRound className="w-4 h-4 text-sky-500" />
+                        Change Password
+                      </button>
 
-                          <button
-                            onClick={() => {
-                              setDropdownOpen(false);
-                              setMyBookingsOpen(true);
-                            }}
-                            className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left"
-                          >
-                            <CalendarCheck2 className="w-4 h-4 text-indigo-500" />
-                            My Bookings
-                          </button>
-
-                          {!isAdmin && (
-                            <button
-                              onClick={() => {
-                                setDropdownOpen(false);
-                                setTicketModalOpen(true);
-                              }}
-                              className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left"
-                            >
-                              <Wrench className="w-4 h-4 text-amber-500" />
-                              Report Issue
-                            </button>
-                          )}
-
-                          {isAdmin && (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setDropdownOpen(false);
-                                  setAdminBookingsOpen(true);
-                                }}
-                                className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left"
-                              >
-                                <CalendarCheck2 className="w-4 h-4 text-indigo-600" />
-                                Booking Approvals
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDropdownOpen(false);
-                                  setAdminPanelOpen(true);
-                                }}
-                                className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left"
-                              >
-                                <ShieldCheck className="w-4 h-4 text-thapar-500" />
-                                Maintenance Panel
-                              </button>
-                            </>
-                          )}
-
-                          <div className="my-1 border-t border-slate-100 dark:border-darkborder" />
-                        </>
-                      )}
+                      <div className="my-1 border-t border-slate-100 dark:border-darkborder" />
 
                       <button
                         onClick={handleLogout}
@@ -346,6 +476,13 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
           onTicketUpdated={() => {
             if (onRefreshData) onRefreshData();
           }}
+        />
+      )}
+
+      {/* Change Password Modal */}
+      {changePasswordOpen && (
+        <ChangePasswordModal
+          onClose={() => setChangePasswordOpen(false)}
         />
       )}
     </>
