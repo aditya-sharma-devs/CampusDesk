@@ -10,7 +10,8 @@ const generateToken = (user) => {
       email: user.email,
       name: user.name,
       role: user.role,
-      department: user.department
+      department: user.department,
+      batch: user.batch || ''
     },
     secret,
     { expiresIn: '7d' }
@@ -22,7 +23,7 @@ const generateToken = (user) => {
 // @access  Public
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password, role, department } = req.body;
+    const { name, email, password, role, department, batch } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -69,12 +70,15 @@ exports.signup = async (req, res) => {
         });
       }
 
+      const studentBatch = assignedRole === 'STUDENT' ? (batch ? String(batch).trim().toUpperCase() : '3P14') : '';
+
       const user = await User.create({
         name: name.trim(),
         email: normalizedEmail,
         password,
         role: assignedRole,
-        department: department || 'Computer Science & Engineering'
+        batch: studentBatch,
+        department: department || (assignedRole === 'STUDENT' ? 'B.Tech Computer Science' : 'Computer Science & Engineering')
       });
 
       const token = generateToken(user);
@@ -88,6 +92,7 @@ exports.signup = async (req, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
+          batch: user.batch || studentBatch,
           department: user.department,
           createdAt: user.createdAt
         }
@@ -95,13 +100,15 @@ exports.signup = async (req, res) => {
     } catch (dbErr) {
       console.warn('⚠️ DB offline during signup. Providing dev mock token.');
       
+      const studentBatch = assignedRole === 'STUDENT' ? (batch ? String(batch).trim().toUpperCase() : '3P14') : '';
       const mockId = 'mock_user_' + Date.now();
       const mockUser = {
         id: mockId,
         name: name.trim(),
         email: normalizedEmail,
         role: assignedRole,
-        department: department || 'Computer Science & Engineering'
+        batch: studentBatch,
+        department: department || (assignedRole === 'STUDENT' ? 'B.Tech Computer Science' : 'Computer Science & Engineering')
       };
 
       const token = generateToken(mockUser);
@@ -168,6 +175,7 @@ exports.login = async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
+            batch: user.batch || (user.role === 'STUDENT' ? '3P14' : ''),
             department: user.department
           }
         });
@@ -183,11 +191,13 @@ exports.login = async (req, res) => {
       // If user not in DB yet (e.g. initial launch before seeding or custom login attempt), auto-create or allow fallback
       console.log(`ℹ️ User ${normalizedEmail} not found in DB. Auto-creating session...`);
       const detectedRole = resolveRole(normalizedEmail);
+      const studentBatch = detectedRole === 'STUDENT' ? '3P14' : '';
       const createdUser = await User.create({
         name: normalizedEmail.split('@')[0].toUpperCase(),
         email: normalizedEmail,
         password: password,
         role: detectedRole,
+        batch: studentBatch,
         department: detectedRole === 'STUDENT' ? 'B.Tech Undergrad' : 'Computer Science & Engineering'
       });
 
@@ -201,6 +211,7 @@ exports.login = async (req, res) => {
           name: createdUser.name,
           email: createdUser.email,
           role: createdUser.role,
+          batch: createdUser.batch || studentBatch,
           department: createdUser.department
         }
       });
@@ -218,6 +229,7 @@ exports.login = async (req, res) => {
         name: normalizedEmail.split('@')[0] || (fallbackRole === 'STUDENT' ? 'Student' : 'Faculty Member'),
         email: normalizedEmail,
         role: fallbackRole,
+        batch: fallbackRole === 'STUDENT' ? '3P14' : '',
         department: fallbackRole === 'STUDENT' ? 'B.Tech Computer Science' : 'Computer Science & Engineering'
       };
 

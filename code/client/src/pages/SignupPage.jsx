@@ -11,6 +11,8 @@ export default function SignupPage() {
     password: '',
     confirmPassword: '',
     role: 'STUDENT',
+    batch: '3P14',
+    customBatch: '',
     department: 'Computer Science & Engineering'
   });
 
@@ -40,12 +42,17 @@ export default function SignupPage() {
       return setError('Password must be at least 6 characters.');
     }
 
+    const effectiveBatch = formData.role === 'STUDENT'
+      ? (formData.batch === 'OTHER' ? (formData.customBatch?.trim() || '3P14') : formData.batch)
+      : '';
+
     setLoading(true);
     const res = await signup({
       name: formData.name,
       email: formData.email,
       password: formData.password,
       role: formData.role,
+      batch: effectiveBatch,
       department: formData.department
     });
     setLoading(false);
@@ -150,6 +157,54 @@ export default function SignupPage() {
                 />
               </div>
             </div>
+
+            {/* Student Batch Selection - Identity for Teacher Broadcasts */}
+            {formData.role === 'STUDENT' && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/90 dark:border-emerald-800/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider">
+                    Select Your Academic Batch
+                  </label>
+                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                    Required for Broadcasts
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    name="batch"
+                    value={formData.batch}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-darkcard border border-emerald-200 dark:border-emerald-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="3P14">3P14 (CSE Group 14)</option>
+                    <option value="3CO1">3CO1 (COE Group 1)</option>
+                    <option value="3CO2">3CO2 (COE Group 2)</option>
+                    <option value="3CO3">3CO3 (COE Group 3)</option>
+                    <option value="3CO4">3CO4 (COE Group 4)</option>
+                    <option value="3CO5">3CO5 (COE Group 5)</option>
+                    <option value="3CO6">3CO6 (COE Group 6)</option>
+                    <option value="3ENC1">3ENC1 (ENC Group 1)</option>
+                    <option value="OTHER">Custom / Other Batch</option>
+                  </select>
+
+                  {formData.batch === 'OTHER' ? (
+                    <input
+                      type="text"
+                      name="customBatch"
+                      required
+                      value={formData.customBatch}
+                      onChange={handleChange}
+                      placeholder="Type batch e.g. 3P15"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-darkcard border border-emerald-200 dark:border-emerald-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase"
+                    />
+                  ) : (
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-300 self-center">
+                      Assigned to <strong>Batch {formData.batch}</strong> for schedule & teacher pings.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">

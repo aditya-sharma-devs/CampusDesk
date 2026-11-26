@@ -36,6 +36,7 @@ const protect = async (req, res, next) => {
       name: decoded.name || 'User',
       email: decoded.email,
       role: decoded.role || 'TEACHER',
+      batch: decoded.batch || '',
       department: decoded.department || 'Computer Science'
     };
 

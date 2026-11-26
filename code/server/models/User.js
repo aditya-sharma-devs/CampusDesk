@@ -27,6 +27,11 @@ const userSchema = new mongoose.Schema(
       enum: ['ADMIN', 'FACULTY_ORGANISATION', 'STUDENT', 'TEACHER', 'ORGANISATION_HEAD'],
       default: 'STUDENT'
     },
+    batch: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     department: {
       type: String,
       default: 'Computer Science & Engineering'

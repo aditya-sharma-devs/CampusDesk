@@ -15,7 +15,8 @@ import {
   BookOpenCheck,
   Calendar,
   Sparkles,
-  X
+  X,
+  Megaphone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
@@ -25,6 +26,8 @@ import BookClassroomModal from './BookClassroomModal';
 import MyBookingsModal from './MyBookingsModal';
 import AdminBookingPanelModal from './AdminBookingPanelModal';
 import ChangePasswordModal from './ChangePasswordModal';
+import TeacherBroadcastModal from './TeacherBroadcastModal';
+import StudentBroadcastModal from './StudentBroadcastModal';
 
 export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBookInitialRoom }) {
   const { user, logout } = useAuth();
@@ -37,6 +40,8 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
   const [myBookingsOpen, setMyBookingsOpen] = useState(false);
   const [adminBookingsOpen, setAdminBookingsOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [teacherBroadcastOpen, setTeacherBroadcastOpen] = useState(false);
+  const [studentBroadcastOpen, setStudentBroadcastOpen] = useState(false);
 
   const isStudent = user?.role === 'STUDENT';
   const isAdmin = user?.role === 'ADMIN';
@@ -45,7 +50,7 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
   const getRoleInfo = () => {
     if (isStudent) {
       return {
-        label: 'Student',
+        label: user?.batch ? `Student (${user.batch})` : 'Student',
         Icon: GraduationCap,
         pillClass: 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
       };
@@ -217,6 +222,23 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
                               <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Change Password</span>
                               <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Account credentials</span>
                             </button>
+
+                            {/* Ping Batch / Broadcast for Faculty */}
+                            <button
+                              onClick={() => {
+                                setServicesMenuOpen(false);
+                                setTeacherBroadcastOpen(true);
+                              }}
+                              className="col-span-2 flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group shadow-xs hover:shadow-sm"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs flex-shrink-0">
+                                <Megaphone className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">Ping Batch / Broadcast</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block leading-snug truncate">Send notice or class cancellation</span>
+                              </div>
+                            </button>
                           </>
                         )}
 
@@ -303,29 +325,22 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
                             <button
                               onClick={() => {
                                 setServicesMenuOpen(false);
-                                navigate('/dashboard');
+                                setStudentBroadcastOpen(true);
                               }}
-                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group shadow-xs hover:shadow-sm"
+                              className="col-span-2 flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
-                                <BookOpenCheck className="w-5 h-5" />
+                              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs flex-shrink-0">
+                                <Megaphone className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Vacant Rooms</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Find empty study spots</span>
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setServicesMenuOpen(false);
-                                navigate('/dashboard');
-                              }}
-                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 transition-all text-left group shadow-xs hover:shadow-sm"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
-                                <Calendar className="w-5 h-5" />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Teacher's Messages</span>
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block leading-snug truncate">
+                                  Batch broadcasts & class cancellations
+                                </span>
                               </div>
-                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Timetables</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Weekly schedules</span>
                             </button>
 
                             <button
@@ -488,6 +503,20 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
       {changePasswordOpen && (
         <ChangePasswordModal
           onClose={() => setChangePasswordOpen(false)}
+        />
+      )}
+
+      {/* Teacher Broadcast / Ping Batch Modal */}
+      {teacherBroadcastOpen && (
+        <TeacherBroadcastModal
+          onClose={() => setTeacherBroadcastOpen(false)}
+        />
+      )}
+
+      {/* Student Broadcast / Teacher Messages Modal */}
+      {studentBroadcastOpen && (
+        <StudentBroadcastModal
+          onClose={() => setStudentBroadcastOpen(false)}
         />
       )}
     </>
