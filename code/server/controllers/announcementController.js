@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const Announcement = require('../models/Announcement');
+const TimetableEntry = require('../models/TimetableEntry');
+const { sampleTimetableEntries } = require('../data/sampleTimetable');
 
 // In-memory sample announcements for dev offline fallback & quick verification
 let sampleAnnouncements = [
@@ -113,6 +115,54 @@ exports.createAnnouncement = async (req, res) => {
       }
     }
 
+    const cleanClassroom = classroom ? classroom.trim().toUpperCase() : '';
+    const cleanDay = day ? day.trim() : '';
+
+    // Enforce Teacher Class Ownership: Faculty can ONLY cancel their own classes!
+    if (isCancelled && req.user && req.user.role !== 'ADMIN' && cleanClassroom && cleanDay) {
+      let scheduleEntries = [];
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        try {
+          scheduleEntries = await TimetableEntry.find({
+            classroom: cleanClassroom,
+            day: { $regex: new RegExp(`^${cleanDay}$`, 'i') }
+          }).lean();
+        } catch (dbErr) {}
+      }
+      if (!scheduleEntries || scheduleEntries.length === 0) {
+        scheduleEntries = sampleTimetableEntries.filter(e => 
+          e.classroom.toUpperCase() === cleanClassroom &&
+          e.day.toLowerCase() === cleanDay.toLowerCase()
+        );
+      }
+
+      // Check if a scheduled class exists at this classroom and time slot
+      const matchedClass = scheduleEntries.find(e => {
+        if (effectiveStart && (e.startTime === effectiveStart || e.startTime.startsWith(effectiveStart))) return true;
+        if (effectiveSlot && effectiveSlot.includes(e.startTime)) return true;
+        return false;
+      });
+
+      if (matchedClass && matchedClass.faculty) {
+        const cleanName = (str) => (str || '').toLowerCase().replace(/^(dr\.|prof\.|er\.|mr\.|mrs\.|ms\.)\s*/i, '').trim();
+        const schedFaculty = cleanName(matchedClass.faculty);
+        const userFaculty = cleanName(req.user.name);
+
+        const isOwner = schedFaculty === userFaculty || 
+                        schedFaculty.includes(userFaculty) || 
+                        userFaculty.includes(schedFaculty) ||
+                        userFaculty === 'faculty' || // dev default fallback
+                        userFaculty === 'teacher';
+
+        if (!isOwner) {
+          return res.status(403).json({
+            success: false,
+            message: `Ownership Restriction: Classroom ${cleanClassroom} at ${matchedClass.startTime}-${matchedClass.endTime} on ${cleanDay} belongs to ${matchedClass.faculty}. You cannot cancel or un-occupy another instructor's class.`
+          });
+        }
+      }
+    }
+
     const announcementData = {
       senderId: String(req.user.id || req.user._id || 'faculty_user'),
       senderName: req.user.name || 'Faculty Member',
@@ -122,8 +172,8 @@ exports.createAnnouncement = async (req, res) => {
       title: cleanTitle,
       message: message.trim(),
       tag: cleanTag,
-      classroom: classroom ? classroom.trim().toUpperCase() : '',
-      day: day ? day.trim() : '',
+      classroom: cleanClassroom,
+      day: cleanDay,
       startTime: effectiveStart,
       endTime: effectiveEnd,
       slot: effectiveSlot,

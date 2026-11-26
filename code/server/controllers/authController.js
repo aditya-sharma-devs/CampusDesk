@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const { sendWelcomeEmail } = require('../services/emailService');
 
 const generateToken = (user) => {
   const secret = process.env.JWT_SECRET || 'thapar_classroom_secret_jwt_key_2026_se_project';
@@ -83,9 +84,17 @@ exports.signup = async (req, res) => {
 
       const token = generateToken(user);
 
+      // Asynchronously trigger welcome email (non-blocking)
+      sendWelcomeEmail({
+        to: user.email,
+        name: user.name,
+        role: user.role,
+        batch: user.batch || studentBatch
+      }).catch(err => console.warn('Welcome email error:', err));
+
       return res.status(201).json({
         success: true,
-        message: 'Account created successfully.',
+        message: 'Account created successfully. A welcome email has been sent to your TIET address.',
         token,
         user: {
           id: user._id,
@@ -113,9 +122,17 @@ exports.signup = async (req, res) => {
 
       const token = generateToken(mockUser);
 
+      // Asynchronously trigger welcome email in mock mode too
+      sendWelcomeEmail({
+        to: mockUser.email,
+        name: mockUser.name,
+        role: mockUser.role,
+        batch: mockUser.batch
+      }).catch(err => console.warn('Welcome email error:', err));
+
       return res.status(201).json({
         success: true,
-        message: 'Account created successfully.',
+        message: 'Account created successfully. A welcome email has been sent to your TIET address.',
         token,
         user: mockUser
       });

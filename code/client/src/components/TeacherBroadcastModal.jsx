@@ -35,6 +35,9 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
   const [slot, setSlot] = useState('10:30 AM - 11:20 AM');
   const [subject, setSubject] = useState('Software Engineering');
   const [batchClasses, setBatchClasses] = useState([]);
+  const [myClasses, setMyClasses] = useState([]);
+  const [allClasses, setAllClasses] = useState([]);
+  const [selectedMyClassId, setSelectedMyClassId] = useState('');
   const [fetchingSchedule, setFetchingSchedule] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -78,6 +81,36 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+  // Helper to verify if faculty name in schedule matches the logged in teacher
+  const isSameFaculty = (schedFaculty, userFaculty) => {
+    if (!schedFaculty || !userFaculty) return false;
+    const clean = (s) => (s || '').toLowerCase().replace(/^(dr\.|prof\.|er\.|mr\.|mrs\.|ms\.)\s*/i, '').trim();
+    const sf = clean(schedFaculty);
+    const uf = clean(userFaculty);
+    return sf === uf || sf.includes(uf) || uf.includes(sf) || uf === 'faculty' || uf === 'teacher';
+  };
+
+  // Fetch all classes across campus and compute the instructor's personal scheduled classes
+  useEffect(() => {
+    const fetchAllAndMyClasses = async () => {
+      try {
+        const res = await api.get('/timetable');
+        if (res.data.success) {
+          const list = res.data.data || [];
+          setAllClasses(list);
+          const mine = list.filter(c => isSameFaculty(c.faculty, user?.name));
+          setMyClasses(mine);
+          if (mine.length > 0 && tag === 'CLASS_CANCELLED') {
+            handleSelectQuickClass(mine[0]);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load classes:', err);
+      }
+    };
+    fetchAllAndMyClasses();
+  }, [user?.name]);
+
   // Fetch schedule for batch & day so teacher can 1-click select
   useEffect(() => {
     const fetchBatchClasses = async () => {
@@ -106,8 +139,13 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
 
   const handleSelectQuickClass = (cls) => {
     if (!cls) return;
+    setSelectedMyClassId(cls._id || `${cls.day}-${cls.startTime}-${cls.classroom}`);
     setClassroom(cls.classroom);
     setSubject(cls.subject);
+    setDay(cls.day);
+    if (cls.batch && cls.batch !== 'All') {
+      setTargetBatch(cls.batch);
+    }
     const matchedSlot = STANDARD_SLOTS.find(s => s.start === cls.startTime) || {
       value: `${cls.startTime} - ${cls.endTime}`
     };
@@ -115,6 +153,18 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
     setTitle(`${cls.subject} Class Cancelled (${cls.classroom})`);
     setMessage(`Today's ${matchedSlot.value} ${cls.subject} lecture in ${cls.classroom} is cancelled. The classroom is now un-occupied and free for student self-study.`);
   };
+
+  // Determine if the currently specified classroom & slot belongs to another teacher
+  const selectedSlotObj = STANDARD_SLOTS.find(s => s.value === slot);
+  const activeStart = selectedSlotObj ? selectedSlotObj.start : (slot.split('-')[0] || '').trim();
+
+  const conflictingClass = allClasses.find(c => 
+    c.classroom?.toUpperCase() === classroom.trim().toUpperCase() &&
+    c.day?.toLowerCase() === day.trim().toLowerCase() &&
+    (c.startTime === activeStart || slot.includes(c.startTime))
+  );
+
+  const isClassOwner = !conflictingClass || isSameFaculty(conflictingClass.faculty, user?.name) || user?.role === 'ADMIN';
 
   const fetchRecent = async () => {
     setFetchingRecent(true);
@@ -152,6 +202,10 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
 
     if (isCancelledTag && !classroom.trim()) {
       return setError('Please specify the Classroom Room Number to un-occupy.');
+    }
+
+    if (isCancelledTag && !isClassOwner && conflictingClass) {
+      return setError(`Ownership Policy: Classroom ${classroom} during this slot is assigned to ${conflictingClass.faculty}. You can only un-occupy classes assigned to you.`);
     }
 
     const selectedSlotObj = STANDARD_SLOTS.find(s => s.value === slot);
@@ -339,11 +393,38 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
                   </span>
                 </div>
 
-                {/* Quick Select from Timetable */}
-                {batchClasses.length > 0 && (
+                {/* Priority 1: Pick from My Scheduled Classes (Teacher Ownership) */}
+                {myClasses.length > 0 && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-rose-800 dark:text-rose-300 mb-1 flex items-center justify-between">
+                      <span>Pick From Your Scheduled Classes ({user?.name}):</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                        Verified Ownership
+                      </span>
+                    </label>
+                    <select
+                      value={selectedMyClassId}
+                      onChange={(e) => {
+                        const selectedCls = myClasses.find(c => (c._id || `${c.day}-${c.startTime}-${c.classroom}`) === e.target.value);
+                        if (selectedCls) handleSelectQuickClass(selectedCls);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden"
+                    >
+                      <option value="" disabled>-- Select one of your assigned lectures --</option>
+                      {myClasses.map((c, i) => (
+                        <option key={i} value={c._id || `${c.day}-${c.startTime}-${c.classroom}`}>
+                          {c.day} {c.startTime} - {c.endTime} | Room {c.classroom} | {c.subject} ({c.batch})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Priority 2: Quick Select from Batch Timetable */}
+                {myClasses.length === 0 && batchClasses.length > 0 && (
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                      Quick Pick from Scheduled Classes for Batch {targetBatch} on {day}:
+                      Scheduled Classes for Batch {targetBatch} on {day}:
                     </label>
                     <select
                       onChange={(e) => {
@@ -426,12 +507,22 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
                   />
                 </div>
 
-                <div className="flex items-start gap-2 pt-1 text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-50/80 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>
-                    When pinged, <strong>{classroom || 'Classroom'}</strong> will immediately switch to <strong>Available</strong> for {day} during {slot}. It will not show occupied.
-                  </span>
-                </div>
+                {/* Ownership Verification Alert */}
+                {conflictingClass && !isClassOwner ? (
+                  <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-xs font-bold text-amber-900 dark:text-amber-200">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span>Ownership Restriction:</span> Classroom {classroom} at this time is assigned to <strong>{conflictingClass.faculty}</strong>. Teachers cannot un-occupy another teacher's class.
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 pt-1 text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-50/80 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>
+                      When pinged, <strong>{classroom || 'Classroom'}</strong> will immediately switch to <strong>Available</strong> for {day} during {slot}.
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -481,7 +572,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (isCancellation && !isClassOwner && Boolean(conflictingClass))}
                 className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />

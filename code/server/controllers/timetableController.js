@@ -8,13 +8,14 @@ const { getActiveCancellations } = require('./announcementController');
 // @access  Public / Protected
 exports.getAllEntries = async (req, res) => {
   try {
-    const { day, batch, type, classroom, subject, search } = req.query;
+    const { day, batch, type, classroom, subject, search, faculty } = req.query;
     let query = {};
 
     if (day) query.day = { $regex: new RegExp(`^${day.trim()}$`, 'i') };
     if (batch) query.batch = { $regex: new RegExp(batch.trim(), 'i') };
     if (type) query.type = { $regex: new RegExp(`^${type.trim()}$`, 'i') };
     if (classroom) query.classroom = { $regex: new RegExp(`^${classroom.trim()}$`, 'i') };
+    if (faculty) query.faculty = { $regex: new RegExp(faculty.trim(), 'i') };
     if (subject) {
       const subRegex = new RegExp(subject.trim(), 'i');
       query.$or = [
@@ -48,6 +49,14 @@ exports.getAllEntries = async (req, res) => {
       if (batch) entries = entries.filter(e => e.batch.toLowerCase().includes(batch.trim().toLowerCase()));
       if (type) entries = entries.filter(e => e.type.toLowerCase() === type.trim().toLowerCase());
       if (classroom) entries = entries.filter(e => e.classroom.toLowerCase() === classroom.trim().toLowerCase());
+      if (faculty) {
+        const f = faculty.trim().toLowerCase().replace(/^(dr\.|prof\.|er\.|mr\.|mrs\.|ms\.)\s*/i, '');
+        entries = entries.filter(e => {
+          if (!e.faculty) return false;
+          const ef = e.faculty.toLowerCase().replace(/^(dr\.|prof\.|er\.|mr\.|mrs\.|ms\.)\s*/i, '');
+          return ef.includes(f) || f.includes(ef);
+        });
+      }
       if (subject) {
         const s = subject.trim().toLowerCase();
         entries = entries.filter(e => 
