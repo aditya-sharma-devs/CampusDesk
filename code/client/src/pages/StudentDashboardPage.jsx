@@ -526,7 +526,7 @@ export default function StudentDashboardPage() {
                               )}
                               {isCancelled && (
                                 <span className="text-[10px] font-bold px-2 py-0.2 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-                                  Class Cancelled by Teacher
+                                  Cancelled (This Week Only)
                                 </span>
                               )}
                             </div>
@@ -537,7 +537,7 @@ export default function StudentDashboardPage() {
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           {isCancelled ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-800 animate-pulse">
-                              CANCELLED
+                              CANCELLED (THIS WEEK)
                             </span>
                           ) : (
                             renderTypeBadge(entry.type)
@@ -546,9 +546,16 @@ export default function StudentDashboardPage() {
 
                         {/* Faculty */}
                         <td className="py-3.5 px-5 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <span className="font-medium">{entry.faculty || 'Faculty Member'}</span>
+                          <div className="text-slate-700 dark:text-slate-300">
+                            <div className="flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="font-medium">{entry.faculty || 'Faculty Member'}</span>
+                            </div>
+                            {entry.facultyId && (
+                              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 ml-5 block">
+                                ID: {entry.facultyId}
+                              </span>
+                            )}
                           </div>
                         </td>
 

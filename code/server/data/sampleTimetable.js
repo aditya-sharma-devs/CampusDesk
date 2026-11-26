@@ -40,44 +40,44 @@ const sampleClassrooms = [
 
 const sampleTimetableEntries = [
   // --- MONDAY ---
-  { batch: '3P14', day: 'Monday', subject: 'Computer Architecture and Organization', subjectCode: 'CAO', startTime: '09:40', endTime: '10:30', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Rajesh Sharma' },
-  { batch: '3P14', day: 'Monday', subject: 'Software Engineering', subjectCode: 'SE', startTime: '10:30', endTime: '11:20', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Neha Verma' },
-  { batch: '3P14', day: 'Monday', subject: 'Cloud Computing', subjectCode: 'CC', startTime: '11:20', endTime: '12:10', classroom: 'T106', type: 'LECTURE', faculty: 'Prof. Amit Patel' },
-  { batch: '3CO1', day: 'Monday', subject: 'Enterprise Resource Management', subjectCode: 'ERM', startTime: '09:40', endTime: '10:30', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. S. K. Singh' },
-  { batch: '3CO1', day: 'Monday', subject: 'Database Management Systems', subjectCode: 'DBMS', startTime: '10:30', endTime: '11:20', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. Meenakshi' },
-  { batch: '3CO2', day: 'Monday', subject: 'Computer Networks', subjectCode: 'CN', startTime: '13:00', endTime: '13:50', classroom: 'F201', type: 'LECTURE', faculty: 'Dr. Vikas Kumar' },
-  { batch: '3CO2', day: 'Monday', subject: 'Artificial Intelligence', subjectCode: 'AI', startTime: '13:50', endTime: '14:40', classroom: 'E104', type: 'LECTURE', faculty: 'Dr. Ananya Roy' },
+  { batch: '3P14', day: 'Monday', subject: 'Computer Architecture and Organization', subjectCode: 'CAO', startTime: '09:40', endTime: '10:30', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Rajesh Sharma', facultyId: 'FAC_RAJESH_SHARMA', facultyEmail: 'rajesh.sharma@thapar.edu' },
+  { batch: '3P14', day: 'Monday', subject: 'Software Engineering', subjectCode: 'SE', startTime: '10:30', endTime: '11:20', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Neha Verma', facultyId: 'FAC_NEHA_VERMA', facultyEmail: 'neha.verma@thapar.edu' },
+  { batch: '3P14', day: 'Monday', subject: 'Cloud Computing', subjectCode: 'CC', startTime: '11:20', endTime: '12:10', classroom: 'T106', type: 'LECTURE', faculty: 'Prof. Amit Patel', facultyId: 'FAC_AMIT_PATEL', facultyEmail: 'amit.patel@thapar.edu' },
+  { batch: '3CO1', day: 'Monday', subject: 'Enterprise Resource Management', subjectCode: 'ERM', startTime: '09:40', endTime: '10:30', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. S. K. Singh', facultyId: 'FAC_SK_SINGH', facultyEmail: 'sk.singh@thapar.edu' },
+  { batch: '3CO1', day: 'Monday', subject: 'Database Management Systems', subjectCode: 'DBMS', startTime: '10:30', endTime: '11:20', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. Meenakshi', facultyId: 'FAC_MEENAKSHI', facultyEmail: 'meenakshi@thapar.edu' },
+  { batch: '3CO2', day: 'Monday', subject: 'Computer Networks', subjectCode: 'CN', startTime: '13:00', endTime: '13:50', classroom: 'F201', type: 'LECTURE', faculty: 'Dr. Vikas Kumar', facultyId: 'FAC_VIKAS_KUMAR', facultyEmail: 'vikas.kumar@thapar.edu' },
+  { batch: '3CO2', day: 'Monday', subject: 'Artificial Intelligence', subjectCode: 'AI', startTime: '13:50', endTime: '14:40', classroom: 'E104', type: 'LECTURE', faculty: 'Dr. Ananya Roy', facultyId: 'FAC_ANANYA_ROY', facultyEmail: 'ananya.roy@thapar.edu' },
   
   // LAB ENTRY on Monday (Excluded from lecture hall availability as per Requirement 18)
-  { batch: '3P14', day: 'Monday', subject: 'Software Engineering Lab [Lab]', subjectCode: 'SE-LAB', startTime: '14:40', endTime: '16:20', classroom: 'LP109', type: 'LAB', faculty: 'Er. Tarunpreet' },
+  { batch: '3P14', day: 'Monday', subject: 'Software Engineering Lab [Lab]', subjectCode: 'SE-LAB', startTime: '14:40', endTime: '16:20', classroom: 'LP109', type: 'LAB', faculty: 'Er. Tarunpreet', facultyId: 'FAC_TARUNPREET', facultyEmail: 'tarunpreet@thapar.edu' },
 
   // --- TUESDAY ---
-  { batch: '3P14', day: 'Tuesday', subject: 'Software Engineering', subjectCode: 'SE', startTime: '08:50', endTime: '09:40', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Neha Verma' },
-  { batch: '3P14', day: 'Tuesday', subject: 'Computer Architecture and Organization', subjectCode: 'CAO', startTime: '09:40', endTime: '10:30', classroom: 'T107', type: 'LECTURE', faculty: 'Dr. Rajesh Sharma' },
-  { batch: '3CO1', day: 'Tuesday', subject: 'Cloud Computing', subjectCode: 'CC', startTime: '11:20', endTime: '12:10', classroom: 'LT301', type: 'LECTURE', faculty: 'Prof. Amit Patel' },
-  { batch: '3CO2', day: 'Tuesday', subject: 'Enterprise Resource Management', subjectCode: 'ERM', startTime: '13:00', endTime: '13:50', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. S. K. Singh' },
-  { batch: '3CO3', day: 'Tuesday', subject: 'Operating Systems', subjectCode: 'OS', startTime: '14:40', endTime: '15:30', classroom: 'L302', type: 'LECTURE', faculty: 'Dr. Harpreet Kaur' },
+  { batch: '3P14', day: 'Tuesday', subject: 'Software Engineering', subjectCode: 'SE', startTime: '08:50', endTime: '09:40', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Neha Verma', facultyId: 'FAC_NEHA_VERMA', facultyEmail: 'neha.verma@thapar.edu' },
+  { batch: '3P14', day: 'Tuesday', subject: 'Computer Architecture and Organization', subjectCode: 'CAO', startTime: '09:40', endTime: '10:30', classroom: 'T107', type: 'LECTURE', faculty: 'Dr. Rajesh Sharma', facultyId: 'FAC_RAJESH_SHARMA', facultyEmail: 'rajesh.sharma@thapar.edu' },
+  { batch: '3CO1', day: 'Tuesday', subject: 'Cloud Computing', subjectCode: 'CC', startTime: '11:20', endTime: '12:10', classroom: 'LT301', type: 'LECTURE', faculty: 'Prof. Amit Patel', facultyId: 'FAC_AMIT_PATEL', facultyEmail: 'amit.patel@thapar.edu' },
+  { batch: '3CO2', day: 'Tuesday', subject: 'Enterprise Resource Management', subjectCode: 'ERM', startTime: '13:00', endTime: '13:50', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. S. K. Singh', facultyId: 'FAC_SK_SINGH', facultyEmail: 'sk.singh@thapar.edu' },
+  { batch: '3CO3', day: 'Tuesday', subject: 'Operating Systems', subjectCode: 'OS', startTime: '14:40', endTime: '15:30', classroom: 'L302', type: 'LECTURE', faculty: 'Dr. Harpreet Kaur', facultyId: 'FAC_HARPREET_KAUR', facultyEmail: 'harpreet.kaur@thapar.edu' },
 
   // --- WEDNESDAY ---
-  { batch: '3P14', day: 'Wednesday', subject: 'Cloud Computing', subjectCode: 'CC', startTime: '09:40', endTime: '10:30', classroom: 'T106', type: 'LECTURE', faculty: 'Prof. Amit Patel' },
-  { batch: '3P14', day: 'Wednesday', subject: 'Database Management Systems', subjectCode: 'DBMS', startTime: '10:30', endTime: '11:20', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Meenakshi' },
-  { batch: '3CO1', day: 'Wednesday', subject: 'Computer Networks', subjectCode: 'CN', startTime: '11:20', endTime: '12:10', classroom: 'LT302', type: 'LECTURE', faculty: 'Dr. Vikas Kumar' },
-  { batch: '3CO2', day: 'Wednesday', subject: 'Software Engineering', subjectCode: 'SE', startTime: '13:50', endTime: '14:40', classroom: 'F202', type: 'LECTURE', faculty: 'Dr. Neha Verma' },
+  { batch: '3P14', day: 'Wednesday', subject: 'Cloud Computing', subjectCode: 'CC', startTime: '09:40', endTime: '10:30', classroom: 'T106', type: 'LECTURE', faculty: 'Prof. Amit Patel', facultyId: 'FAC_AMIT_PATEL', facultyEmail: 'amit.patel@thapar.edu' },
+  { batch: '3P14', day: 'Wednesday', subject: 'Database Management Systems', subjectCode: 'DBMS', startTime: '10:30', endTime: '11:20', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Meenakshi', facultyId: 'FAC_MEENAKSHI', facultyEmail: 'meenakshi@thapar.edu' },
+  { batch: '3CO1', day: 'Wednesday', subject: 'Computer Networks', subjectCode: 'CN', startTime: '11:20', endTime: '12:10', classroom: 'LT302', type: 'LECTURE', faculty: 'Dr. Vikas Kumar', facultyId: 'FAC_VIKAS_KUMAR', facultyEmail: 'vikas.kumar@thapar.edu' },
+  { batch: '3CO2', day: 'Wednesday', subject: 'Software Engineering', subjectCode: 'SE', startTime: '13:50', endTime: '14:40', classroom: 'F202', type: 'LECTURE', faculty: 'Dr. Neha Verma', facultyId: 'FAC_NEHA_VERMA', facultyEmail: 'neha.verma@thapar.edu' },
   
   // LAB ENTRY on Wednesday
-  { batch: '3CO1', day: 'Wednesday', subject: 'Computer Networks Lab [Lab]', subjectCode: 'CN-LAB', startTime: '14:40', endTime: '16:20', classroom: 'LP108', type: 'LAB', faculty: 'Dr. Vikas Kumar' },
+  { batch: '3CO1', day: 'Wednesday', subject: 'Computer Networks Lab [Lab]', subjectCode: 'CN-LAB', startTime: '14:40', endTime: '16:20', classroom: 'LP108', type: 'LAB', faculty: 'Dr. Vikas Kumar', facultyId: 'FAC_VIKAS_KUMAR', facultyEmail: 'vikas.kumar@thapar.edu' },
 
   // --- THURSDAY ---
-  { batch: '3P14', day: 'Thursday', subject: 'Computer Architecture and Organization', subjectCode: 'CAO', startTime: '10:30', endTime: '11:20', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Rajesh Sharma' },
-  { batch: '3CO1', day: 'Thursday', subject: 'Artificial Intelligence', subjectCode: 'AI', startTime: '11:20', endTime: '12:10', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. Ananya Roy' },
-  { batch: '3CO2', day: 'Thursday', subject: 'Cloud Computing', subjectCode: 'CC', startTime: '13:00', endTime: '13:50', classroom: 'E104', type: 'LECTURE', faculty: 'Prof. Amit Patel' },
-  { batch: '3CO3', day: 'Thursday', subject: 'Database Management Systems', subjectCode: 'DBMS', startTime: '15:30', endTime: '16:20', classroom: 'L301', type: 'LECTURE', faculty: 'Dr. Meenakshi' },
+  { batch: '3P14', day: 'Thursday', subject: 'Computer Architecture and Organization', subjectCode: 'CAO', startTime: '10:30', endTime: '11:20', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Rajesh Sharma', facultyId: 'FAC_RAJESH_SHARMA', facultyEmail: 'rajesh.sharma@thapar.edu' },
+  { batch: '3CO1', day: 'Thursday', subject: 'Artificial Intelligence', subjectCode: 'AI', startTime: '11:20', endTime: '12:10', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. Ananya Roy', facultyId: 'FAC_ANANYA_ROY', facultyEmail: 'ananya.roy@thapar.edu' },
+  { batch: '3CO2', day: 'Thursday', subject: 'Cloud Computing', subjectCode: 'CC', startTime: '13:00', endTime: '13:50', classroom: 'E104', type: 'LECTURE', faculty: 'Prof. Amit Patel', facultyId: 'FAC_AMIT_PATEL', facultyEmail: 'amit.patel@thapar.edu' },
+  { batch: '3CO3', day: 'Thursday', subject: 'Database Management Systems', subjectCode: 'DBMS', startTime: '15:30', endTime: '16:20', classroom: 'L301', type: 'LECTURE', faculty: 'Dr. Meenakshi', facultyId: 'FAC_MEENAKSHI', facultyEmail: 'meenakshi@thapar.edu' },
 
   // --- FRIDAY ---
-  { batch: '3P14', day: 'Friday', subject: 'Software Engineering', subjectCode: 'SE', startTime: '09:40', endTime: '10:30', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Neha Verma' },
-  { batch: '3CO1', day: 'Friday', subject: 'Enterprise Resource Management', subjectCode: 'ERM', startTime: '10:30', endTime: '11:20', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. S. K. Singh' },
-  { batch: '3CO2', day: 'Friday', subject: 'Computer Architecture and Organization', subjectCode: 'CAO', startTime: '11:20', endTime: '12:10', classroom: 'F201', type: 'LECTURE', faculty: 'Dr. Rajesh Sharma' },
-  { batch: '3CO3', day: 'Friday', subject: 'Computer Networks', subjectCode: 'CN', startTime: '13:50', endTime: '14:40', classroom: 'L302', type: 'LECTURE', faculty: 'Dr. Vikas Kumar' }
+  { batch: '3P14', day: 'Friday', subject: 'Software Engineering', subjectCode: 'SE', startTime: '09:40', endTime: '10:30', classroom: 'T106', type: 'LECTURE', faculty: 'Dr. Neha Verma', facultyId: 'FAC_NEHA_VERMA', facultyEmail: 'neha.verma@thapar.edu' },
+  { batch: '3CO1', day: 'Friday', subject: 'Enterprise Resource Management', subjectCode: 'ERM', startTime: '10:30', endTime: '11:20', classroom: 'LT303', type: 'LECTURE', faculty: 'Dr. S. K. Singh', facultyId: 'FAC_SK_SINGH', facultyEmail: 'sk.singh@thapar.edu' },
+  { batch: '3CO2', day: 'Friday', subject: 'Computer Architecture and Organization', subjectCode: 'CAO', startTime: '11:20', endTime: '12:10', classroom: 'F201', type: 'LECTURE', faculty: 'Dr. Rajesh Sharma', facultyId: 'FAC_RAJESH_SHARMA', facultyEmail: 'rajesh.sharma@thapar.edu' },
+  { batch: '3CO3', day: 'Friday', subject: 'Computer Networks', subjectCode: 'CN', startTime: '13:50', endTime: '14:40', classroom: 'L302', type: 'LECTURE', faculty: 'Dr. Vikas Kumar', facultyId: 'FAC_VIKAS_KUMAR', facultyEmail: 'vikas.kumar@thapar.edu' }
 ];
 
 module.exports = {

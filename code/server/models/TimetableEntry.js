@@ -50,6 +50,17 @@ const timetableEntrySchema = new mongoose.Schema(
       trim: true,
       default: 'Faculty Member'
     },
+    facultyId: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    facultyEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: ''
+    },
     section: {
       type: String,
       trim: true
@@ -60,8 +71,9 @@ const timetableEntrySchema = new mongoose.Schema(
   }
 );
 
-// Index for efficient querying by day, classroom, and batch
+// Index for efficient querying by day, classroom, batch, and facultyId
 timetableEntrySchema.index({ day: 1, classroom: 1, startTime: 1 });
 timetableEntrySchema.index({ batch: 1 });
+timetableEntrySchema.index({ facultyId: 1 });
 
 module.exports = mongoose.model('TimetableEntry', timetableEntrySchema);

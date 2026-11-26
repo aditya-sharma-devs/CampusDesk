@@ -69,9 +69,102 @@ function getCurrentTimeStr() {
   return `${hours}:${mins}`;
 }
 
+/**
+ * Returns the ISO week number and year for a given date.
+ * @param {Date} [date]
+ * @returns {{ week: number, year: number }}
+ */
+function getWeekNumber(date = new Date()) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { week: weekNo, year: d.getUTCFullYear() };
+}
+
+/**
+ * Calculates the exact YYYY-MM-DD date for a given day name in the current week (Monday - Sunday).
+ * @param {string} dayName - e.g. "Monday", "Tuesday", "Wednesday"
+ * @param {Date} [baseDate] - Reference date (defaults to now)
+ * @returns {string} Date string in YYYY-MM-DD format
+ */
+function getDateForDayOfWeek(dayName, baseDate = new Date()) {
+  const daysMap = {
+    'monday': 1,
+    'tuesday': 2,
+    'wednesday': 3,
+    'thursday': 4,
+    'friday': 5,
+    'saturday': 6,
+    'sunday': 7
+  };
+
+  const targetDayIdx = daysMap[(dayName || '').toLowerCase()] || 1;
+  const currentDayIdx = baseDate.getDay() === 0 ? 7 : baseDate.getDay(); // 1 (Mon) - 7 (Sun)
+  
+  const diffDays = targetDayIdx - currentDayIdx;
+  const targetDate = new Date(baseDate);
+  targetDate.setDate(baseDate.getDate() + diffDays);
+
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const day = String(targetDate.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Gets the current week boundary: start (Monday 00:00:00), end (Sunday 23:59:59.999).
+ * Used for setting expiration dates on weekly class cancellations.
+ * @param {Date} [baseDate]
+ * @returns {{ weekStart: Date, weekEnd: Date, weekNumber: number, year: number }}
+ */
+function getWeekRange(baseDate = new Date()) {
+  const currentDayIdx = baseDate.getDay() === 0 ? 7 : baseDate.getDay();
+  
+  // Monday 00:00:00
+  const monday = new Date(baseDate);
+  monday.setDate(baseDate.getDate() - (currentDayIdx - 1));
+  monday.setHours(0, 0, 0, 0);
+
+  // Sunday 23:59:59.999
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  const { week, year } = getWeekNumber(baseDate);
+
+  return {
+    weekStart: monday,
+    weekEnd: sunday,
+    weekNumber: week,
+    year
+  };
+}
+
+/**
+ * Determines whether a given ISO date or YYYY-MM-DD string falls inside the current calendar week.
+ * @param {string|Date} dateToCheck
+ * @param {Date} [baseDate]
+ * @returns {boolean}
+ */
+function isDateInCurrentWeek(dateToCheck, baseDate = new Date()) {
+  if (!dateToCheck) return false;
+  const target = new Date(dateToCheck);
+  if (isNaN(target.getTime())) return false;
+
+  const { weekStart, weekEnd } = getWeekRange(baseDate);
+  return target >= weekStart && target <= weekEnd;
+}
+
 module.exports = {
   timeToMinutes,
   isTimeWithinSlot,
   getCurrentDayName,
-  getCurrentTimeStr
+  getCurrentTimeStr,
+  getWeekNumber,
+  getDateForDayOfWeek,
+  getWeekRange,
+  isDateInCurrentWeek
 };

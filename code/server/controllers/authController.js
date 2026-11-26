@@ -12,7 +12,8 @@ const generateToken = (user) => {
       name: user.name,
       role: user.role,
       department: user.department,
-      batch: user.batch || ''
+      batch: user.batch || '',
+      facultyId: user.facultyId || ''
     },
     secret,
     { expiresIn: '7d' }
@@ -72,6 +73,9 @@ exports.signup = async (req, res) => {
       }
 
       const studentBatch = assignedRole === 'STUDENT' ? (batch ? String(batch).trim().toUpperCase() : '3P14') : '';
+      const teacherId = assignedRole === 'FACULTY_ORGANISATION' 
+        ? (req.body.facultyId ? String(req.body.facultyId).trim().toUpperCase() : `FAC_${name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_')}`)
+        : '';
 
       const user = await User.create({
         name: name.trim(),
@@ -79,6 +83,7 @@ exports.signup = async (req, res) => {
         password,
         role: assignedRole,
         batch: studentBatch,
+        facultyId: teacherId,
         department: department || (assignedRole === 'STUDENT' ? 'B.Tech Computer Science' : 'Computer Science & Engineering')
       });
 
@@ -102,6 +107,7 @@ exports.signup = async (req, res) => {
           email: user.email,
           role: user.role,
           batch: user.batch || studentBatch,
+          facultyId: user.facultyId || teacherId,
           department: user.department,
           createdAt: user.createdAt
         }
@@ -110,6 +116,10 @@ exports.signup = async (req, res) => {
       console.warn('⚠️ DB offline during signup. Providing dev mock token.');
       
       const studentBatch = assignedRole === 'STUDENT' ? (batch ? String(batch).trim().toUpperCase() : '3P14') : '';
+      const teacherId = assignedRole === 'FACULTY_ORGANISATION' 
+        ? (req.body.facultyId ? String(req.body.facultyId).trim().toUpperCase() : `FAC_${name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_')}`)
+        : '';
+
       const mockId = 'mock_user_' + Date.now();
       const mockUser = {
         id: mockId,
@@ -117,6 +127,7 @@ exports.signup = async (req, res) => {
         email: normalizedEmail,
         role: assignedRole,
         batch: studentBatch,
+        facultyId: teacherId,
         department: department || (assignedRole === 'STUDENT' ? 'B.Tech Computer Science' : 'Computer Science & Engineering')
       };
 
@@ -181,7 +192,14 @@ exports.login = async (req, res) => {
           });
         }
 
-        const token = generateToken(user);
+        const teacherId = user.facultyId || (user.role === 'FACULTY_ORGANISATION' 
+          ? `FAC_${(user.name || 'FACULTY').toUpperCase().replace(/[^A-Z0-9]/g, '_')}` 
+          : '');
+
+        const token = generateToken({
+          ...user.toObject ? user.toObject() : user,
+          facultyId: teacherId
+        });
 
         return res.status(200).json({
           success: true,
@@ -193,6 +211,7 @@ exports.login = async (req, res) => {
             email: user.email,
             role: user.role,
             batch: user.batch || (user.role === 'STUDENT' ? '3P14' : ''),
+            facultyId: teacherId,
             department: user.department
           }
         });
@@ -209,12 +228,17 @@ exports.login = async (req, res) => {
       console.log(`ℹ️ User ${normalizedEmail} not found in DB. Auto-creating session...`);
       const detectedRole = resolveRole(normalizedEmail);
       const studentBatch = detectedRole === 'STUDENT' ? '3P14' : '';
+      const teacherId = detectedRole === 'FACULTY_ORGANISATION'
+        ? `FAC_${normalizedEmail.split('@')[0].toUpperCase().replace(/[^A-Z0-9]/g, '_')}`
+        : '';
+
       const createdUser = await User.create({
         name: normalizedEmail.split('@')[0].toUpperCase(),
         email: normalizedEmail,
         password: password,
         role: detectedRole,
         batch: studentBatch,
+        facultyId: teacherId,
         department: detectedRole === 'STUDENT' ? 'B.Tech Undergrad' : 'Computer Science & Engineering'
       });
 
@@ -229,6 +253,7 @@ exports.login = async (req, res) => {
           email: createdUser.email,
           role: createdUser.role,
           batch: createdUser.batch || studentBatch,
+          facultyId: createdUser.facultyId || teacherId,
           department: createdUser.department
         }
       });
@@ -241,12 +266,17 @@ exports.login = async (req, res) => {
         ? 'FACULTY_ORGANISATION'
         : 'STUDENT';
 
+      const fallbackTeacherId = fallbackRole === 'FACULTY_ORGANISATION'
+        ? `FAC_${normalizedEmail.split('@')[0].toUpperCase().replace(/[^A-Z0-9]/g, '_')}`
+        : '';
+
       const mockUser = {
         id: 'dev_user_101',
         name: normalizedEmail.split('@')[0] || (fallbackRole === 'STUDENT' ? 'Student' : 'Faculty Member'),
         email: normalizedEmail,
         role: fallbackRole,
         batch: fallbackRole === 'STUDENT' ? '3P14' : '',
+        facultyId: fallbackTeacherId,
         department: fallbackRole === 'STUDENT' ? 'B.Tech Computer Science' : 'Computer Science & Engineering'
       };
 

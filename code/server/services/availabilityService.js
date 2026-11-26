@@ -6,7 +6,7 @@
 const mongoose = require('mongoose');
 const Classroom = require('../models/Classroom');
 const TimetableEntry = require('../models/TimetableEntry');
-const { timeToMinutes, getCurrentDayName, getCurrentTimeStr } = require('../utils/timeUtils');
+const { timeToMinutes, getCurrentDayName, getCurrentTimeStr, getDateForDayOfWeek } = require('../utils/timeUtils');
 const { extractBlockFromRoom } = require('../utils/blockUtils');
 const { sampleClassrooms, sampleTimetableEntries } = require('../data/sampleTimetable');
 const { getUnresolvedTicketsMap } = require('../controllers/ticketController');
@@ -53,8 +53,9 @@ async function getClassroomAvailability({ day, time, block, search }) {
   // Fetch approved room bookings for the target day
   const approvedBookingsToday = await getApprovedBookingsForDay(targetDay);
 
-  // Fetch active teacher cancellations for the target day
-  const activeCancellations = await getActiveCancellations(targetDay);
+  // Fetch active teacher cancellations for the target day (strictly current week only)
+  const targetDate = getDateForDayOfWeek(targetDay);
+  const activeCancellations = await getActiveCancellations(targetDay, targetDate);
 
   // Evaluate status and ticket tags for each classroom
   const processedClassrooms = classroomsData.map(room => {

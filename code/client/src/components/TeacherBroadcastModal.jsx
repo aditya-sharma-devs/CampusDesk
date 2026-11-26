@@ -81,16 +81,27 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  // Helper to verify if faculty name in schedule matches the logged in teacher
-  const isSameFaculty = (schedFaculty, userFaculty) => {
-    if (!schedFaculty || !userFaculty) return false;
+  // Strict Teacher ID resolution
+  const userFacultyId = (user?.facultyId || '').trim().toUpperCase() ||
+    `FAC_${(user?.name || 'FACULTY').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+
+  // Helper to verify if faculty identity matches the logged-in teacher (Strict ID matching with name fallback)
+  const isSameFaculty = (schedFaculty, schedFacultyId, schedEmail) => {
+    if (user?.role === 'ADMIN') return true;
+    if (schedFacultyId && userFacultyId && schedFacultyId.toUpperCase() === userFacultyId.toUpperCase()) {
+      return true;
+    }
+    if (schedEmail && user?.email && schedEmail.toLowerCase() === user.email.toLowerCase()) {
+      return true;
+    }
+    if (!schedFaculty || !user?.name) return false;
     const clean = (s) => (s || '').toLowerCase().replace(/^(dr\.|prof\.|er\.|mr\.|mrs\.|ms\.)\s*/i, '').trim();
     const sf = clean(schedFaculty);
-    const uf = clean(userFaculty);
+    const uf = clean(user?.name);
     return sf === uf || sf.includes(uf) || uf.includes(sf) || uf === 'faculty' || uf === 'teacher';
   };
 
-  // Fetch all classes across campus and compute the instructor's personal scheduled classes
+  // Fetch all classes across campus and compute the instructor's personal scheduled classes linked to their Teacher ID
   useEffect(() => {
     const fetchAllAndMyClasses = async () => {
       try {
@@ -98,7 +109,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
         if (res.data.success) {
           const list = res.data.data || [];
           setAllClasses(list);
-          const mine = list.filter(c => isSameFaculty(c.faculty, user?.name));
+          const mine = list.filter(c => isSameFaculty(c.faculty, c.facultyId, c.facultyEmail));
           setMyClasses(mine);
           if (mine.length > 0 && tag === 'CLASS_CANCELLED') {
             handleSelectQuickClass(mine[0]);
@@ -109,7 +120,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
       }
     };
     fetchAllAndMyClasses();
-  }, [user?.name]);
+  }, [user?.name, user?.facultyId]);
 
   // Fetch schedule for batch & day so teacher can 1-click select
   useEffect(() => {
@@ -150,8 +161,8 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
       value: `${cls.startTime} - ${cls.endTime}`
     };
     setSlot(matchedSlot.value);
-    setTitle(`${cls.subject} Class Cancelled (${cls.classroom})`);
-    setMessage(`Today's ${matchedSlot.value} ${cls.subject} lecture in ${cls.classroom} is cancelled. The classroom is now un-occupied and free for student self-study.`);
+    setTitle(`${cls.subject} Class Cancelled (This Week Only)`);
+    setMessage(`Today's ${matchedSlot.value} ${cls.subject} lecture in ${cls.classroom} is cancelled for this week. The classroom is now un-occupied and free for student self-study.`);
   };
 
   // Determine if the currently specified classroom & slot belongs to another teacher
@@ -164,7 +175,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
     (c.startTime === activeStart || slot.includes(c.startTime))
   );
 
-  const isClassOwner = !conflictingClass || isSameFaculty(conflictingClass.faculty, user?.name) || user?.role === 'ADMIN';
+  const isClassOwner = !conflictingClass || isSameFaculty(conflictingClass.faculty, conflictingClass.facultyId, conflictingClass.facultyEmail);
 
   const fetchRecent = async () => {
     setFetchingRecent(true);
@@ -205,7 +216,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
     }
 
     if (isCancelledTag && !isClassOwner && conflictingClass) {
-      return setError(`Ownership Policy: Classroom ${classroom} during this slot is assigned to ${conflictingClass.faculty}. You can only un-occupy classes assigned to you.`);
+      return setError(`Ownership Policy: Classroom ${classroom} during this slot is assigned to ${conflictingClass.faculty} (Teacher ID: ${conflictingClass.facultyId || 'FAC_OTHER'}). You can only un-occupy classes assigned to your Teacher ID (${userFacultyId}).`);
     }
 
     const selectedSlotObj = STANDARD_SLOTS.find(s => s.value === slot);
@@ -276,11 +287,18 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
               <Megaphone className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                Ping Batch / Broadcast Message
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                  Ping Batch / Broadcast Message
+                </h3>
+                {userFacultyId && (
+                  <span className="px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-mono text-[10px] font-black uppercase">
+                    ID: {userFacultyId}
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Send faculty notice or cancel class to automatically un-occupy the classroom.
+                Send faculty notice or cancel class to automatically un-occupy classroom (this week only).
               </p>
             </div>
           </div>
@@ -512,15 +530,20 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
                   <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-xs font-bold text-amber-900 dark:text-amber-200">
                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <div>
-                      <span>Ownership Restriction:</span> Classroom {classroom} at this time is assigned to <strong>{conflictingClass.faculty}</strong>. Teachers cannot un-occupy another teacher's class.
+                      <span>Ownership Restriction:</span> Classroom {classroom} at this time is assigned to <strong>{conflictingClass.faculty}</strong> (Teacher ID: <code className="font-mono bg-amber-200/60 dark:bg-amber-900/60 px-1 py-0.5 rounded">{conflictingClass.facultyId || 'FAC_OTHER'}</code>). Your Teacher ID is <code className="font-mono bg-amber-200/60 dark:bg-amber-900/60 px-1 py-0.5 rounded">{userFacultyId}</code>. Only the instructor assigned to this subject ID can cancel this class.
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-start gap-2 pt-1 text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-50/80 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>
-                      When pinged, <strong>{classroom || 'Classroom'}</strong> will immediately switch to <strong>Available</strong> for {day} during {slot}.
-                    </span>
+                    <div>
+                      <span>
+                        When pinged, <strong>{classroom || 'Classroom'}</strong> will immediately switch to <strong>Available</strong> for {day} during {slot}.
+                      </span>
+                      <span className="block text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5 font-bold">
+                        ℹ️ Un-occupied for this week only. Next week's class returns to normal scheduled occupancy automatically.
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>

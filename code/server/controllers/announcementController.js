@@ -2,6 +2,14 @@ const mongoose = require('mongoose');
 const Announcement = require('../models/Announcement');
 const TimetableEntry = require('../models/TimetableEntry');
 const { sampleTimetableEntries } = require('../data/sampleTimetable');
+const { 
+  getDateForDayOfWeek, 
+  getWeekRange, 
+  getWeekNumber 
+} = require('../utils/timeUtils');
+
+const currentWeekMeta = getWeekNumber();
+const currentWeekBoundary = getWeekRange();
 
 // In-memory sample announcements for dev offline fallback & quick verification
 let sampleAnnouncements = [
@@ -12,8 +20,8 @@ let sampleAnnouncements = [
     senderEmail: 'neha.verma@thapar.edu',
     senderRole: 'FACULTY_ORGANISATION',
     targetBatch: '3P14',
-    title: 'Software Engineering Class Cancelled',
-    message: "Today's 10:30 AM Software Engineering lecture in T106 is cancelled due to a faculty department meeting. The room is now unoccupied and free for student self-study.",
+    title: 'Software Engineering Class Cancelled (This Week Only)',
+    message: "Today's 10:30 AM Software Engineering lecture in T106 is cancelled due to a faculty department meeting. The room is now unoccupied and free for student self-study for this week.",
     tag: 'CLASS_CANCELLED',
     classroom: 'T106',
     day: 'Monday',
@@ -23,6 +31,12 @@ let sampleAnnouncements = [
     subject: 'Software Engineering',
     subjectCode: 'SE',
     isClassCancelled: true,
+    facultyId: 'FAC_NEHA_VERMA',
+    facultyEmail: 'neha.verma@thapar.edu',
+    cancellationDate: getDateForDayOfWeek('Monday'),
+    weekOfYear: currentWeekMeta.week,
+    year: currentWeekMeta.year,
+    expiresAt: currentWeekBoundary.weekEnd,
     createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString() // 35 mins ago
   },
   {
@@ -44,8 +58,8 @@ let sampleAnnouncements = [
     senderEmail: 'meenakshi@thapar.edu',
     senderRole: 'FACULTY_ORGANISATION',
     targetBatch: '3CO1',
-    title: 'DBMS Surprise Evaluation Postponed',
-    message: 'The short relational algebra quiz scheduled for today is postponed to Friday.',
+    title: 'DBMS Evaluation Postponed (This Week Only)',
+    message: 'The short relational algebra quiz scheduled for today is postponed. Room LT303 is unoccupied during this slot for this week.',
     tag: 'RESCHEDULED',
     classroom: 'LT303',
     day: 'Monday',
@@ -55,6 +69,12 @@ let sampleAnnouncements = [
     subject: 'Database Management Systems',
     subjectCode: 'DBMS',
     isClassCancelled: true,
+    facultyId: 'FAC_MEENAKSHI',
+    facultyEmail: 'meenakshi@thapar.edu',
+    cancellationDate: getDateForDayOfWeek('Monday'),
+    weekOfYear: currentWeekMeta.week,
+    year: currentWeekMeta.year,
+    expiresAt: currentWeekBoundary.weekEnd,
     createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString()
   },
   {
@@ -118,8 +138,9 @@ exports.createAnnouncement = async (req, res) => {
     const cleanClassroom = classroom ? classroom.trim().toUpperCase() : '';
     const cleanDay = day ? day.trim() : '';
 
-    // Enforce Teacher Class Ownership: Faculty can ONLY cancel their own classes!
-    if (isCancelled && req.user && req.user.role !== 'ADMIN' && cleanClassroom && cleanDay) {
+    // Enforce Teacher ID Class Ownership: Faculty can ONLY cancel their own classes!
+    let matchedClass = null;
+    if (isCancelled && cleanClassroom && cleanDay) {
       let scheduleEntries = [];
       if (mongoose.connection && mongoose.connection.readyState === 1) {
         try {
@@ -137,56 +158,76 @@ exports.createAnnouncement = async (req, res) => {
       }
 
       // Check if a scheduled class exists at this classroom and time slot
-      const matchedClass = scheduleEntries.find(e => {
+      matchedClass = scheduleEntries.find(e => {
         if (effectiveStart && (e.startTime === effectiveStart || e.startTime.startsWith(effectiveStart))) return true;
         if (effectiveSlot && effectiveSlot.includes(e.startTime)) return true;
         return false;
       });
 
-      if (matchedClass && matchedClass.faculty) {
-        const cleanName = (str) => (str || '').toLowerCase().replace(/^(dr\.|prof\.|er\.|mr\.|mrs\.|ms\.)\s*/i, '').trim();
-        const schedFaculty = cleanName(matchedClass.faculty);
-        const userFaculty = cleanName(req.user.name);
+      // Strict Teacher ID verification (Role ADMIN is exempt as superuser)
+      if (req.user && req.user.role !== 'ADMIN' && matchedClass) {
+        const userFacultyId = (req.user.facultyId || '').trim().toUpperCase() ||
+          `FAC_${(req.user.name || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+        const schedFacultyId = (matchedClass.facultyId || '').trim().toUpperCase() ||
+          `FAC_${(matchedClass.faculty || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+        const userEmail = (req.user.email || '').trim().toLowerCase();
+        const schedEmail = (matchedClass.facultyEmail || '').trim().toLowerCase();
 
-        const isOwner = schedFaculty === userFaculty || 
-                        schedFaculty.includes(userFaculty) || 
-                        userFaculty.includes(schedFaculty) ||
-                        userFaculty === 'faculty' || // dev default fallback
-                        userFaculty === 'teacher';
+        const isOwner = 
+          (schedFacultyId && userFacultyId && schedFacultyId === userFacultyId) ||
+          (schedEmail && userEmail && schedEmail === userEmail) ||
+          userFacultyId === 'FAC_FACULTY' || // dev superuser
+          userFacultyId === 'FAC_ADMIN';
 
         if (!isOwner) {
           return res.status(403).json({
             success: false,
-            message: `Ownership Restriction: Classroom ${cleanClassroom} at ${matchedClass.startTime}-${matchedClass.endTime} on ${cleanDay} belongs to ${matchedClass.faculty}. You cannot cancel or un-occupy another instructor's class.`
+            message: `Ownership Restriction: Classroom ${cleanClassroom} at ${matchedClass.startTime}-${matchedClass.endTime} on ${cleanDay} is assigned to Teacher ID ${schedFacultyId} (${matchedClass.faculty}). Your Teacher ID is ${userFacultyId}. Only the instructor assigned to this subject ID can cancel this class.`
           });
         }
       }
     }
+
+    // Compute week-limited expiration metadata for cancellations
+    const cancelDate = getDateForDayOfWeek(cleanDay || 'Monday');
+    const cancelDateObj = new Date(cancelDate);
+    const weekMeta = getWeekNumber(cancelDateObj);
+    const weekBoundary = getWeekRange(cancelDateObj);
 
     const announcementData = {
       senderId: String(req.user.id || req.user._id || 'faculty_user'),
       senderName: req.user.name || 'Faculty Member',
       senderEmail: req.user.email || 'faculty@thapar.edu',
       senderRole: req.user.role || 'FACULTY_ORGANISATION',
+      facultyId: req.user.facultyId || (matchedClass ? matchedClass.facultyId : `FAC_${(req.user.name || 'FACULTY').toUpperCase().replace(/[^A-Z0-9]/g, '_')}`),
+      facultyEmail: req.user.email || (matchedClass ? matchedClass.facultyEmail : ''),
       targetBatch: cleanBatch,
-      title: cleanTitle,
+      title: isCancelled && !cleanTitle.includes('(This Week Only)') ? `${cleanTitle} (This Week Only)` : cleanTitle,
       message: message.trim(),
       tag: cleanTag,
       classroom: cleanClassroom,
       day: cleanDay,
-      startTime: effectiveStart,
-      endTime: effectiveEnd,
-      slot: effectiveSlot,
-      subject: subject ? subject.trim() : '',
-      subjectCode: subjectCode ? subjectCode.trim().toUpperCase() : '',
-      isClassCancelled: isCancelled
+      startTime: effectiveStart || (matchedClass ? matchedClass.startTime : ''),
+      endTime: effectiveEnd || (matchedClass ? matchedClass.endTime : ''),
+      slot: effectiveSlot || (matchedClass ? `${matchedClass.startTime} - ${matchedClass.endTime}` : ''),
+      subject: subject ? subject.trim() : (matchedClass ? matchedClass.subject : ''),
+      subjectCode: subjectCode ? subjectCode.trim().toUpperCase() : (matchedClass ? matchedClass.subjectCode : ''),
+      isClassCancelled: isCancelled,
+      cancellationDate: cancelDate,
+      weekOfYear: weekMeta.week,
+      year: weekMeta.year,
+      expiresAt: weekBoundary.weekEnd // Active ONLY for the current week until Sunday 23:59:59.999
     };
 
     let created = null;
-    try {
-      created = await Announcement.create(announcementData);
-    } catch (dbErr) {
-      console.warn('⚠️ DB offline during announcement creation. Using in-memory fallback.');
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        created = await Announcement.create(announcementData);
+      } catch (dbErr) {
+        console.warn('⚠️ DB write failed during announcement creation. Using in-memory fallback.');
+      }
+    }
+    if (!created) {
       created = {
         _id: 'ann_' + Date.now(),
         ...announcementData,
@@ -294,9 +335,14 @@ exports.deleteAnnouncement = async (req, res) => {
 
 /**
  * Helper to retrieve all active class cancellations for a target day (or all days).
+ * Strictly filters out past-week or expired cancellations so cancellations are active
+ * ONLY for the current week and scheduled slot!
  * Used by availabilityService, classroomController, and timetableController.
  */
-exports.getActiveCancellations = async (targetDay) => {
+exports.getActiveCancellations = async (targetDay, targetDate) => {
+  const now = new Date();
+  const currentWeekMeta = getWeekNumber(now);
+
   let cancellations = [];
   if (mongoose.connection && mongoose.connection.readyState === 1) {
     try {
@@ -334,5 +380,27 @@ exports.getActiveCancellations = async (targetDay) => {
     });
   }
 
-  return cancellations;
+  // Temporal enforcement: Keep ONLY cancellations valid for THIS WEEK and NOT expired
+  const activeThisWeek = cancellations.filter(c => {
+    // 1. Expiration check: if expiresAt is in the past, it no longer applies
+    if (c.expiresAt && new Date(c.expiresAt) < now) {
+      return false;
+    }
+
+    // 2. Target date check: if explicit target date provided, must match
+    if (targetDate && c.cancellationDate) {
+      if (c.cancellationDate !== targetDate) return false;
+    } else {
+      // 3. Week of year check: must match current calendar week
+      if (c.weekOfYear && c.year) {
+        if (c.weekOfYear !== currentWeekMeta.week || c.year !== currentWeekMeta.year) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
+
+  return activeThisWeek;
 };

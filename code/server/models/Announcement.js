@@ -81,6 +81,34 @@ const announcementSchema = new mongoose.Schema(
     isClassCancelled: {
       type: Boolean,
       default: false
+    },
+    cancellationDate: {
+      type: String,
+      trim: true,
+      default: '' // YYYY-MM-DD
+    },
+    weekOfYear: {
+      type: Number,
+      default: null
+    },
+    year: {
+      type: Number,
+      default: null
+    },
+    expiresAt: {
+      type: Date,
+      default: null
+    },
+    facultyId: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    facultyEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: ''
     }
   },
   {

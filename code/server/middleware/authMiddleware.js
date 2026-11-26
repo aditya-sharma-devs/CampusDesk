@@ -37,6 +37,7 @@ const protect = async (req, res, next) => {
       email: decoded.email,
       role: decoded.role || 'TEACHER',
       batch: decoded.batch || '',
+      facultyId: decoded.facultyId || (decoded.role === 'FACULTY_ORGANISATION' ? `FAC_${(decoded.name || 'FACULTY').toUpperCase().replace(/[^A-Z0-9]/g, '_')}` : ''),
       department: decoded.department || 'Computer Science'
     };
 

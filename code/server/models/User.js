@@ -32,6 +32,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+    facultyId: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     department: {
       type: String,
       default: 'Computer Science & Engineering'

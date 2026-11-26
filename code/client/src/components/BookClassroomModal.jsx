@@ -129,19 +129,19 @@ export default function BookClassroomModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+      <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
         
         {/* Header - Fixed at Top */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-darkborder shrink-0">
+        <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-100 dark:border-darkborder shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-2xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs">
               <CalendarCheck2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
                 Request Classroom Booking
               </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Submit an empty slot reservation for Admin approval.
               </p>
             </div>
@@ -155,69 +155,69 @@ export default function BookClassroomModal({
           </button>
         </div>
 
-        {/* Scrollable Content Body */}
-        <div className="p-6 overflow-y-auto space-y-3.5 scrollbar-thin [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full">
-          {createdBooking ? (
-            <div className="py-4 text-center space-y-3.5">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-7 h-7" />
-              </div>
+        {createdBooking ? (
+          <div className="p-6 overflow-y-auto space-y-3.5 text-center">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-7 h-7" />
+            </div>
 
-              <div>
-                <h4 className="text-base font-black text-slate-900 dark:text-white">
-                  Booking Request Submitted!
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-                  Your request has been forwarded to Academic Administration. Once reviewed, you will see its updated status under <strong>My Bookings</strong>.
-                </p>
-              </div>
+            <div>
+              <h4 className="text-base font-black text-slate-900 dark:text-white">
+                Booking Request Submitted!
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+                Your request has been forwarded to Academic Administration. Once reviewed, you will see its updated status under <strong>My Bookings</strong>.
+              </p>
+            </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Booking Reference:</span>
-                  <span className="font-extrabold font-mono text-indigo-600 dark:text-indigo-400">{createdBooking.bookingId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Classroom:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{createdBooking.roomNumber} ({createdBooking.block})</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Day & Slot:</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">{createdBooking.day}, {createdBooking.slot}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Event Category:</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">{createdBooking.category}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Initial Status:</span>
-                  <span className="font-bold text-amber-600 dark:text-amber-400">PENDING ADMIN APPROVAL</span>
-                </div>
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Booking Reference:</span>
+                <span className="font-extrabold font-mono text-indigo-600 dark:text-indigo-400">{createdBooking.bookingId}</span>
               </div>
-
-              <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    if (onOpenMyBookings) onOpenMyBookings();
-                  }}
-                  className="flex-1 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
-                >
-                  <CalendarCheck2 className="w-4 h-4" />
-                  View in My Bookings
-                </button>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs transition-colors"
-                >
-                  Done
-                </button>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Classroom:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{createdBooking.roomNumber} ({createdBooking.block})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Day & Slot:</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{createdBooking.day}, {createdBooking.slot}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Event Category:</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{createdBooking.category}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Initial Status:</span>
+                <span className="font-bold text-amber-600 dark:text-amber-400">PENDING ADMIN APPROVAL</span>
               </div>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  if (onOpenMyBookings) onOpenMyBookings();
+                }}
+                className="flex-1 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
+              >
+                <CalendarCheck2 className="w-4 h-4" />
+                View in My Bookings
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+            {/* Scrollable Content Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-3 scrollbar-thin [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full">
               {error && (
                 <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
@@ -254,7 +254,7 @@ export default function BookClassroomModal({
                   <select
                     value={selectedSlotIndex}
                     onChange={(e) => setSelectedSlotIndex(e.target.value)}
-                    className="w-full px-3 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full px-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   >
                     {slotOptions.map((opt, idx) => (
                       <option key={idx} value={String(idx)}>
@@ -286,12 +286,12 @@ export default function BookClassroomModal({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Explain the purpose of this booking (e.g. Extra lecture on Distributed Systems, ACM Society orientation)..."
-                  className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none min-h-[58px]"
+                  className="w-full px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none min-h-[52px]"
                 />
               </div>
 
               {/* Requester Profile Preview */}
-              <div className="px-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-2.5">
+              <div className="px-3.5 py-2 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-2.5">
                 <Info className="w-4 h-4 text-indigo-500 shrink-0" />
                 <div className="truncate">
                   <span>Booking registered under </span>
@@ -299,28 +299,28 @@ export default function BookClassroomModal({
                   <span className="text-slate-400"> ({user?.email})</span>
                 </div>
               </div>
+            </div>
 
-              {/* Actions */}
-              <div className="pt-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 flex items-center gap-2"
-                >
-                  {loading ? 'Submitting Request...' : 'Submit Booking Request'}
-                  <Send className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+            {/* Modal Actions - Fixed at Bottom */}
+            <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-darkborder flex items-center justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-5 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 flex items-center gap-2"
+              >
+                {loading ? 'Submitting Request...' : 'Submit Booking Request'}
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </form>
+        )}
 
       </div>
     </div>
