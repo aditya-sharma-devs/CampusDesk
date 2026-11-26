@@ -10,7 +10,7 @@ export default function SignupPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'TEACHER',
+    role: 'STUDENT',
     department: 'Computer Science & Engineering'
   });
 
@@ -115,7 +115,7 @@ export default function SignupPage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="rsharma@thapar.edu"
+                placeholder="e.g. 1024160126@thapar.edu or faculty@thapar.edu"
                 className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-thapar-500 transition-colors"
               />
             </div>
@@ -129,23 +129,24 @@ export default function SignupPage() {
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="w-full px-3 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-thapar-500 transition-colors"
+                  className="w-full px-3 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-thapar-500 transition-colors"
                 >
-                  <option value="TEACHER">Teacher / Faculty</option>
-                  <option value="ORGANISATION_HEAD">Organisation Head</option>
+                  <option value="STUDENT">Student</option>
+                  <option value="FACULTY_ORGANISATION">Faculty / Organisation</option>
+                  <option value="ADMIN">Admin</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
-                  Department
+                  Department / Branch
                 </label>
                 <input
                   type="text"
                   name="department"
                   value={formData.department}
                   onChange={handleChange}
-                  placeholder="CSED"
+                  placeholder="e.g. CSED, COE, ECE"
                   className="w-full px-3 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-thapar-500 transition-colors"
                 />
               </div>

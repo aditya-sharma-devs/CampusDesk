@@ -38,9 +38,11 @@ exports.signup = async (req, res) => {
       });
     }
 
-    const assignedRole = role && ['ADMIN', 'TEACHER', 'ORGANISATION_HEAD'].includes(role) 
-      ? role 
-      : 'TEACHER';
+    const validRoles = ['ADMIN', 'FACULTY_ORGANISATION', 'STUDENT', 'TEACHER', 'ORGANISATION_HEAD'];
+    let assignedRole = role && validRoles.includes(role) ? role : 'STUDENT';
+    if (assignedRole === 'TEACHER' || assignedRole === 'ORGANISATION_HEAD') {
+      assignedRole = 'FACULTY_ORGANISATION';
+    }
 
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -164,14 +166,22 @@ exports.login = async (req, res) => {
         });
       }
 
+      // Helper to map email to default role
+      const resolveRole = (em) => {
+        if (em.includes('admin')) return 'ADMIN';
+        if (em.includes('faculty') || em.includes('teacher') || em.includes('head') || em.includes('prof')) return 'FACULTY_ORGANISATION';
+        return 'STUDENT';
+      };
+
       // If user not in DB yet (e.g. initial launch before seeding or custom login attempt), auto-create or allow fallback
       console.log(`ℹ️ User ${normalizedEmail} not found in DB. Auto-creating session...`);
+      const detectedRole = resolveRole(normalizedEmail);
       const createdUser = await User.create({
         name: normalizedEmail.split('@')[0].toUpperCase(),
         email: normalizedEmail,
         password: password,
-        role: normalizedEmail.includes('admin') ? 'ADMIN' : (normalizedEmail.includes('head') ? 'ORGANISATION_HEAD' : 'TEACHER'),
-        department: 'Computer Science & Engineering'
+        role: detectedRole,
+        department: detectedRole === 'STUDENT' ? 'B.Tech Undergrad' : 'Computer Science & Engineering'
       });
 
       const token = generateToken(createdUser);
@@ -190,12 +200,18 @@ exports.login = async (req, res) => {
     } catch (dbErr) {
       console.warn('⚠️ DB offline during login. Allowing dev session token.');
 
+      const fallbackRole = normalizedEmail.includes('admin')
+        ? 'ADMIN'
+        : (normalizedEmail.includes('faculty') || normalizedEmail.includes('teacher') || normalizedEmail.includes('head') || normalizedEmail.includes('prof'))
+        ? 'FACULTY_ORGANISATION'
+        : 'STUDENT';
+
       const mockUser = {
         id: 'dev_user_101',
-        name: normalizedEmail.split('@')[0] || 'Faculty Member',
+        name: normalizedEmail.split('@')[0] || (fallbackRole === 'STUDENT' ? 'Student' : 'Faculty Member'),
         email: normalizedEmail,
-        role: normalizedEmail.includes('admin') ? 'ADMIN' : (normalizedEmail.includes('head') ? 'ORGANISATION_HEAD' : 'TEACHER'),
-        department: 'Computer Science & Engineering'
+        role: fallbackRole,
+        department: fallbackRole === 'STUDENT' ? 'B.Tech Computer Science' : 'Computer Science & Engineering'
       };
 
       const token = generateToken(mockUser);

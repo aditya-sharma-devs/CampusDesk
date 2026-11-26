@@ -3,7 +3,7 @@ const router = express.Router();
 const { createTicket, getAllTickets, updateTicketStatus } = require('../controllers/ticketController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-router.post('/', protect, createTicket);
+router.post('/', protect, authorize('ADMIN', 'FACULTY_ORGANISATION', 'TEACHER', 'ORGANISATION_HEAD'), createTicket);
 router.get('/', protect, getAllTickets);
 router.put('/:id/status', protect, authorize('ADMIN'), updateTicketStatus);
 

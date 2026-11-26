@@ -13,16 +13,30 @@ const defaultUsers = [
   },
   {
     name: 'Dr. Rajesh Sharma',
-    email: 'teacher@thapar.edu',
+    email: 'faculty@thapar.edu',
     password: 'password123',
-    role: 'TEACHER',
+    role: 'FACULTY_ORGANISATION',
     department: 'Computer Science & Engineering'
   },
   {
-    name: 'Prof. Ananya Gupta',
+    name: 'Aarav Mehta',
+    email: 'student@thapar.edu',
+    password: 'password123',
+    role: 'STUDENT',
+    department: 'B.Tech COE Undergrad'
+  },
+  {
+    name: 'Dr. Rajesh Sharma (Legacy)',
+    email: 'teacher@thapar.edu',
+    password: 'password123',
+    role: 'FACULTY_ORGANISATION',
+    department: 'Computer Science & Engineering'
+  },
+  {
+    name: 'Prof. Ananya Gupta (Legacy)',
     email: 'head@thapar.edu',
     password: 'password123',
-    role: 'ORGANISATION_HEAD',
+    role: 'FACULTY_ORGANISATION',
     department: 'ACM Student Chapter'
   }
 ];

@@ -13,25 +13,39 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/thapar
 
 const defaultUsers = [
   {
-    name: 'Dr. Rajesh Sharma',
-    email: 'teacher@thapar.edu',
-    password: 'password123',
-    role: 'TEACHER',
-    department: 'Computer Science & Engineering'
-  },
-  {
-    name: 'Prof. Ananya Gupta',
-    email: 'head@thapar.edu',
-    password: 'password123',
-    role: 'ORGANISATION_HEAD',
-    department: 'ACM Student Chapter'
-  },
-  {
     name: 'System Admin',
     email: 'admin@thapar.edu',
     password: 'adminpassword123',
     role: 'ADMIN',
     department: 'Academic Affairs'
+  },
+  {
+    name: 'Dr. Rajesh Sharma',
+    email: 'faculty@thapar.edu',
+    password: 'password123',
+    role: 'FACULTY_ORGANISATION',
+    department: 'Computer Science & Engineering'
+  },
+  {
+    name: 'Aarav Mehta',
+    email: 'student@thapar.edu',
+    password: 'password123',
+    role: 'STUDENT',
+    department: 'B.Tech COE Undergrad'
+  },
+  {
+    name: 'Dr. Rajesh Sharma (Legacy)',
+    email: 'teacher@thapar.edu',
+    password: 'password123',
+    role: 'FACULTY_ORGANISATION',
+    department: 'Computer Science & Engineering'
+  },
+  {
+    name: 'Prof. Ananya Gupta (Legacy)',
+    email: 'head@thapar.edu',
+    password: 'password123',
+    role: 'FACULTY_ORGANISATION',
+    department: 'ACM Student Chapter'
   }
 ];
 

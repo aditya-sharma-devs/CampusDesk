@@ -13,9 +13,17 @@ const generateTicketId = () => {
 
 // @desc    Raise a new classroom complaint ticket
 // @route   POST /api/tickets
-// @access  Private (Teacher, Org Head, Admin)
+// @access  Private (Admin & Faculty/Organisation only)
 exports.createTicket = async (req, res) => {
   try {
+    // Permission check: Students cannot raise tickets
+    if (req.user && req.user.role === 'STUDENT') {
+      return res.status(403).json({
+        success: false,
+        message: 'Maintenance reporting is restricted to Faculty and Administration. Students are not authorized to raise maintenance tickets.'
+      });
+    }
+
     const { roomNumber, category, description } = req.body;
 
     if (!roomNumber || !description) {

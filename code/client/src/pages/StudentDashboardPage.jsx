@@ -1,0 +1,437 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Search, 
+  Filter, 
+  Calendar, 
+  Clock, 
+  Building2, 
+  CheckCircle2, 
+  XCircle, 
+  RefreshCw, 
+  Layers, 
+  HelpCircle,
+  X,
+  Wrench,
+  GraduationCap,
+  BookOpen,
+  Sparkles,
+  CalendarCheck2
+} from 'lucide-react';
+import api from '../services/api';
+import Navbar from '../components/Navbar';
+import ClassroomCard from '../components/ClassroomCard';
+import ClassroomScheduleModal from '../components/ClassroomScheduleModal';
+import TicketDetailModal from '../components/TicketDetailModal';
+import CustomSelect from '../components/CustomSelect';
+import { STANDARD_SLOTS, DAYS_OF_WEEK } from '../utils/timeFormat';
+
+export default function StudentDashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [selectedDay, setSelectedDay] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedBlock, setSelectedBlock] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [onlyVacant, setOnlyVacant] = useState(false);
+  const [selectedClassroomModal, setSelectedClassroomModal] = useState(null);
+  const [selectedTicketModal, setSelectedTicketModal] = useState(null);
+
+  // Fetch availability data whenever filters change (with silent background update support)
+  const fetchAvailability = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
+    try {
+      const params = {};
+      if (selectedDay) params.day = selectedDay;
+      if (selectedTime) params.time = selectedTime;
+      if (selectedBlock && selectedBlock !== 'ALL') params.block = selectedBlock;
+      if (searchQuery) params.search = searchQuery;
+
+      const res = await api.get('/classrooms/availability', { params });
+      if (res.data.success) {
+        setData(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch student availability report:', err);
+    } finally {
+      if (!isBackground) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailability();
+  }, [selectedDay, selectedTime, selectedBlock]);
+
+  // Debounced search trigger
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchAvailability();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Live Auto-Refresh: silent polling every 8s & on window focus / tab switch
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAvailability(true);
+    }, 8000);
+
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAvailability(true);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [selectedDay, selectedTime, selectedBlock, searchQuery]);
+
+  const resetFilters = () => {
+    setSelectedDay('');
+    setSelectedTime('');
+    setSelectedBlock('ALL');
+    setSearchQuery('');
+    setOnlyVacant(false);
+  };
+
+  const hasActiveFilters = selectedDay !== '' || selectedTime !== '' || selectedBlock !== 'ALL' || searchQuery !== '' || onlyVacant;
+
+  const summary = data?.summary || { totalClassrooms: 0, availableCount: 0, occupiedCount: 0, bookedCount: 0, maintenanceCount: 0, pendingIssueCount: 0, blockSummary: {} };
+  const allClassrooms = data?.classrooms || [];
+  const meta = data?.meta || {};
+
+  // Filter classrooms by onlyVacant if toggle is active
+  const displayedClassrooms = onlyVacant
+    ? allClassrooms.filter(c => c.status === 'AVAILABLE')
+    : allClassrooms;
+
+  const dayOptions = [
+    { label: 'Current Today', value: '' },
+    ...DAYS_OF_WEEK.map(d => ({ label: d, value: d }))
+  ];
+
+  const availableBlocks = ['ALL', 'T Block', 'LT Block', 'F Block', 'E Block', 'L Block', 'LP Block'];
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-darkbg text-slate-900 dark:text-slate-100 transition-colors pb-16">
+      <Navbar onRefreshData={fetchAvailability} />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex-1 w-full space-y-8">
+        
+        {/* Student Page Top Hero Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold mb-2 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Student Study Space & Vacancy Finder</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              Find Vacant Classrooms for Study & Group Work
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+              Locate empty lecture halls across Thapar campus to sit, read, review notes, or hold group discussions between scheduled classes.
+            </p>
+          </div>
+
+          {/* Current Target Pill with Live Dot */}
+          <div className="flex items-center gap-2.5 self-start md:self-auto px-4 py-2.5 rounded-2xl bg-white dark:bg-darkcard border border-slate-200/80 dark:border-darkborder shadow-sm text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span>Targeting: <strong className="text-thapar-600 dark:text-thapar-400 font-bold">{meta.day || 'Today'}</strong> at <strong className="text-thapar-600 dark:text-thapar-400 font-bold">{meta.time || 'Current Time'}</strong></span>
+          </div>
+        </div>
+
+        {/* Student Metric Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
+          
+          {/* Vacant Study Space (Featured) */}
+          <div 
+            onClick={() => setOnlyVacant(!onlyVacant)}
+            className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between cursor-pointer transition-all hover:scale-[1.02] ${
+              onlyVacant 
+                ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-400 dark:border-emerald-700 ring-2 ring-emerald-500/30'
+                : 'bg-white dark:bg-darkcard border-slate-200/90 dark:border-darkborder'
+            }`}
+          >
+            <div>
+              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                Vacant for Study
+                {onlyVacant && <span className="text-[10px] bg-emerald-200 dark:bg-emerald-800 px-1.5 py-0.2 rounded font-black">ACTIVE</span>}
+              </p>
+              <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                {summary.availableCount}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Click to view vacant only</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Classes in Session */}
+          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                In-Session Classes
+              </p>
+              <p className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-1">
+                {summary.occupiedCount}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Lectures ongoing</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200 dark:border-rose-800">
+              <BookOpen className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Reserved Events */}
+          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                Reserved Events
+              </p>
+              <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+                {summary.bookedCount || 0}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Club & seminar slots</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
+              <CalendarCheck2 className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Total Classrooms */}
+          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Total Rooms
+              </p>
+              <p className="text-3xl font-black text-slate-900 dark:text-white mt-1">
+                {summary.totalClassrooms}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Across 6 blocks</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
+              <Building2 className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Maintenance */}
+          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between col-span-2 lg:col-span-1">
+            <div>
+              <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                Maintenance
+              </p>
+              <p className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">
+                {summary.maintenanceCount || 0}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Reported repairs</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-800">
+              <Wrench className="w-6 h-6" />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Student Search & Filters Panel */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm space-y-6">
+          
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-emerald-500" />
+              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                Study Space Filters
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Quick 1-Click Toggle for Vacant Only */}
+              <button
+                onClick={() => setOnlyVacant(!onlyVacant)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-sm ${
+                  onlyVacant
+                    ? 'bg-emerald-600 text-white shadow-emerald-500/25'
+                    : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{onlyVacant ? 'Showing: Vacant Only' : 'Show Vacant Only'}</span>
+              </button>
+
+              {hasActiveFilters && (
+                <button
+                  onClick={resetFilters}
+                  className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* Custom Day Selector */}
+            <CustomSelect
+              label="Day of Week"
+              options={dayOptions}
+              value={selectedDay}
+              onChange={setSelectedDay}
+              icon={Calendar}
+              placeholder="Current Today"
+            />
+
+            {/* Custom Time Slot Selector */}
+            <CustomSelect
+              label="Time Slot"
+              options={STANDARD_SLOTS}
+              value={selectedTime}
+              onChange={setSelectedTime}
+              icon={Clock}
+              placeholder="Current Time"
+            />
+
+            {/* Room Search Input */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                Search Room Number or Course
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="e.g. LT301, T106, E102..."
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white dark:focus:bg-darkcard transition-all"
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+
+          </div>
+
+          {/* Academic Block Tabs */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-2">
+                Academic Block:
+              </span>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none w-full">
+                {availableBlocks.map(b => {
+                  const isSelected = selectedBlock === b;
+                  return (
+                    <button
+                      key={b}
+                      onClick={() => setSelectedBlock(b)}
+                      className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition-all shrink-0 ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]'
+                          : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900'
+                      }`}
+                    >
+                      {b}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Classroom Directory Area */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-emerald-500" />
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                Classroom Directory
+              </h2>
+              {onlyVacant && (
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  Showing Vacant Only ({displayedClassrooms.length})
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live Sync Active</span>
+              </div>
+              <button
+                onClick={() => fetchAvailability(false)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-sm"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="py-20 text-center space-y-3">
+              <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Finding vacant classrooms for you...</p>
+            </div>
+          ) : displayedClassrooms.length === 0 ? (
+            <div className="py-16 text-center bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-3xl p-8 space-y-3">
+              <HelpCircle className="w-10 h-10 text-slate-400 mx-auto" />
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+                {onlyVacant ? 'No Vacant Classrooms Right Now' : 'No Classrooms Found'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                {onlyVacant 
+                  ? 'All classrooms in this academic block are currently occupied by lectures or events. Try selecting another block or turning off the vacant filter.'
+                  : 'No classrooms match your filter criteria. Try resetting filters.'}
+              </p>
+              {onlyVacant && (
+                <button
+                  onClick={() => setOnlyVacant(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors mt-2"
+                >
+                  Show All Classrooms
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {displayedClassrooms.map((room) => (
+                <ClassroomCard
+                  key={room.id}
+                  classroom={room}
+                  onViewSchedule={(cls) => setSelectedClassroomModal(cls)}
+                  onViewTicket={(tkt) => setSelectedTicketModal(tkt)}
+                  // onBookRoom is NOT passed for students!
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+      </main>
+
+      {/* Classroom Timetable Schedule Modal Drawer */}
+      {selectedClassroomModal && (
+        <ClassroomScheduleModal
+          classroom={selectedClassroomModal}
+          onClose={() => setSelectedClassroomModal(null)}
+        />
+      )}
+
+      {/* Ticket Details View Modal (Read-only for info) */}
+      {selectedTicketModal && (
+        <TicketDetailModal
+          ticket={selectedTicketModal}
+          onClose={() => setSelectedTicketModal(null)}
+        />
+      )}
+    </div>
+  );
+}

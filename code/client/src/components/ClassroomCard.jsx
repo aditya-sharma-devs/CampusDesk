@@ -14,8 +14,11 @@ import {
   CalendarPlus
 } from 'lucide-react';
 import { formatTo12Hour } from '../utils/timeFormat';
+import { useAuth } from '../context/AuthContext';
 
 export default function ClassroomCard({ classroom, onViewSchedule, onViewTicket, onBookRoom }) {
+  const { user } = useAuth();
+  const isStudent = user?.role === 'STUDENT';
   const isAvailable = classroom.status === 'AVAILABLE';
   const isBooked = classroom.status === 'BOOKED';
   const occ = classroom.currentOccupancy;
@@ -120,23 +123,27 @@ export default function ClassroomCard({ classroom, onViewSchedule, onViewTicket,
           {isAvailable ? (
             <div className="flex flex-col justify-between h-full space-y-2">
               <div>
-                <div className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-medium text-xs">
+                <div className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Free during this time slot
+                  {isStudent ? 'Vacant Study Space' : 'Free during this time slot'}
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Ready for lecture, guest seminar, makeup class, or student club event.
+                  {isStudent 
+                    ? 'Classroom is currently empty. Suitable for individual self-study, reading, or quiet group discussion.'
+                    : 'Ready for lecture, guest seminar, makeup class, or student club event.'}
                 </p>
               </div>
 
-              {/* Book Room Button */}
-              <button
-                onClick={() => onBookRoom && onBookRoom(classroom)}
-                className="inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold transition-all shadow-sm self-start mt-1"
-              >
-                <CalendarPlus className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                <span>Book This Room</span>
-              </button>
+              {/* Book Room Button - Only for Faculty & Admin */}
+              {!isStudent && onBookRoom && (
+                <button
+                  onClick={() => onBookRoom(classroom)}
+                  className="inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold transition-all shadow-sm self-start mt-1"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Book This Room</span>
+                </button>
+              )}
             </div>
           ) : isBooked && booking ? (
             <div className="space-y-2">

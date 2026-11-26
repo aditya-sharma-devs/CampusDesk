@@ -29,9 +29,17 @@ const isOverlap = (startA, endA, startB, endB) => {
 
 // @desc    Apply for a classroom booking
 // @route   POST /api/bookings
-// @access  Private (Any authenticated user with @thapar.edu)
+// @access  Private (Admin & Faculty/Organisation only)
 exports.createBooking = async (req, res) => {
   try {
+    // Permission check: Students cannot book classrooms
+    if (req.user && req.user.role === 'STUDENT') {
+      return res.status(403).json({
+        success: false,
+        message: 'Classroom booking is restricted to Faculty and Organisation Heads. Students are not authorized to reserve classrooms.'
+      });
+    }
+
     const { roomNumber, day, startTime, endTime, slot, description, category } = req.body;
 
     if (!roomNumber || !day || !startTime || !endTime || !description) {

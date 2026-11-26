@@ -12,7 +12,7 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 // All booking routes require authentication with @thapar.edu account
 router.use(protect);
 
-router.post('/', createBooking);
+router.post('/', authorize('ADMIN', 'FACULTY_ORGANISATION', 'TEACHER', 'ORGANISATION_HEAD'), createBooking);
 router.get('/', getAllBookings);
 router.get('/my', getMyBookings);
 router.put('/:id/status', authorize('ADMIN'), updateBookingStatus);

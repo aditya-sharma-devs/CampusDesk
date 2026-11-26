@@ -22,8 +22,17 @@ import ClassroomScheduleModal from '../components/ClassroomScheduleModal';
 import TicketDetailModal from '../components/TicketDetailModal';
 import CustomSelect from '../components/CustomSelect';
 import { STANDARD_SLOTS, DAYS_OF_WEEK } from '../utils/timeFormat';
+import { useAuth } from '../context/AuthContext';
+import StudentDashboardPage from './StudentDashboardPage';
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+
+  // If the logged in user is a Student, render the dedicated Student Dashboard
+  if (user && user.role === 'STUDENT') {
+    return <StudentDashboardPage />;
+  }
+
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [selectedDay, setSelectedDay] = useState('');
