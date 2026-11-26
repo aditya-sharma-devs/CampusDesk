@@ -462,15 +462,21 @@ export default function StudentDashboardPage() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-medium">
                   {filteredEntries.map((entry, idx) => {
                     const isLab = entry.type === 'LAB';
+                    const isCancelled = entry.isCancelled;
+
                     return (
                       <tr 
                         key={idx}
-                        className="hover:bg-slate-50/90 dark:hover:bg-slate-800/40 transition-colors"
+                        className={`transition-colors ${
+                          isCancelled 
+                            ? 'bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100/60 dark:hover:bg-rose-950/40' 
+                            : 'hover:bg-slate-50/90 dark:hover:bg-slate-800/40'
+                        }`}
                       >
                         {/* Day */}
                         <td className="py-3.5 px-5 sm:px-6 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span className={`w-2 h-2 rounded-full ${isCancelled ? 'bg-rose-500' : 'bg-emerald-500'}`}></span>
                             {entry.day}
                           </span>
                         </td>
@@ -478,40 +484,64 @@ export default function StudentDashboardPage() {
                         {/* Time Slot */}
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold font-mono text-xs">
-                            <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            <span>{formatTo12Hour(entry.startTime)} - {formatTo12Hour(entry.endTime)}</span>
+                            <Clock className={`w-3.5 h-3.5 shrink-0 ${isCancelled ? 'text-rose-500' : 'text-emerald-500'}`} />
+                            <span className={isCancelled ? 'line-through text-slate-400' : ''}>
+                              {formatTo12Hour(entry.startTime)} - {formatTo12Hour(entry.endTime)}
+                            </span>
                           </div>
                         </td>
 
                         {/* Classroom (with block) */}
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <span className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-extrabold border border-indigo-200 dark:border-indigo-800 shadow-2xs">
+                            <span className={`px-2.5 py-1 rounded-xl font-extrabold border shadow-2xs ${
+                              isCancelled
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+                                : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                            }`}>
                               {entry.classroom}
                             </span>
                             <span className="text-[11px] text-slate-400 font-semibold">
                               {entry.block}
                             </span>
+                            {isCancelled && (
+                              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase">
+                                Unoccupied
+                              </span>
+                            )}
                           </div>
                         </td>
 
                         {/* Subject & Code */}
                         <td className="py-3.5 px-5">
                           <div>
-                            <span className="font-bold text-slate-900 dark:text-white block">
+                            <span className={`font-bold block ${isCancelled ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}`}>
                               {entry.subject}
                             </span>
-                            {entry.subjectCode && (
-                              <span className="inline-block mt-0.5 text-[10px] font-mono font-extrabold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                                {entry.subjectCode}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {entry.subjectCode && (
+                                <span className="inline-block text-[10px] font-mono font-extrabold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                  {entry.subjectCode}
+                                </span>
+                              )}
+                              {isCancelled && (
+                                <span className="text-[10px] font-bold px-2 py-0.2 rounded-md bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                                  Class Cancelled by Teacher
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
 
                         {/* Class Type */}
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          {renderTypeBadge(entry.type)}
+                          {isCancelled ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-800 animate-pulse">
+                              CANCELLED
+                            </span>
+                          ) : (
+                            renderTypeBadge(entry.type)
+                          )}
                         </td>
 
                         {/* Faculty */}

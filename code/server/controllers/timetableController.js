@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const TimetableEntry = require('../models/TimetableEntry');
 const { sampleTimetableEntries } = require('../data/sampleTimetable');
+const { getActiveCancellations } = require('./announcementController');
 
 // @desc    Get all timetable entries with advanced filtering
 // @route   GET /api/timetable
@@ -32,10 +34,12 @@ exports.getAllEntries = async (req, res) => {
     }
 
     let entries = [];
-    try {
-      entries = await TimetableEntry.find(query).lean();
-    } catch (dbErr) {
-      console.warn('⚠️ DB offline. Using sample dataset for timetable.');
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        entries = await TimetableEntry.find(query).lean();
+      } catch (dbErr) {
+        console.warn('⚠️ DB offline. Using sample dataset for timetable.');
+      }
     }
 
     if (!entries || entries.length === 0) {
@@ -72,17 +76,41 @@ exports.getAllEntries = async (req, res) => {
       return (a.startTime || '').localeCompare(b.startTime || '');
     });
 
-    const enriched = sorted.map(e => ({
-      ...e,
-      block: e.block || (
-        e.classroom?.startsWith('LT') ? 'LT Block' :
-        e.classroom?.startsWith('LP') ? 'LP Block' :
-        e.classroom?.startsWith('T') ? 'T Block' :
-        e.classroom?.startsWith('F') ? 'F Block' :
-        e.classroom?.startsWith('E') ? 'E Block' :
-        e.classroom?.startsWith('L') ? 'L Block' : 'Campus'
-      )
-    }));
+    // Fetch active teacher cancellations
+    const activeCancellations = await getActiveCancellations();
+
+    const enriched = sorted.map(e => {
+      const cancelMatch = activeCancellations.find(c => {
+        if (!c.classroom) return false;
+        const sameRoom = c.classroom.toUpperCase() === (e.classroom || '').toUpperCase();
+        const sameDay = !c.day || c.day.toLowerCase() === (e.day || '').toLowerCase();
+        if (!sameRoom || !sameDay) return false;
+
+        if (c.startTime && c.endTime) {
+          return (c.startTime === e.startTime && c.endTime === e.endTime) ||
+                 (c.startTime === e.startTime);
+        }
+        if (c.slot) {
+          const sClean = c.slot.replace(/\s+(AM|PM)/gi, '');
+          if (sClean.includes(e.startTime)) return true;
+        }
+        return true;
+      });
+
+      return {
+        ...e,
+        isCancelled: !!cancelMatch,
+        cancellationReason: cancelMatch ? (cancelMatch.title || cancelMatch.message) : null,
+        block: e.block || (
+          e.classroom?.startsWith('LT') ? 'LT Block' :
+          e.classroom?.startsWith('LP') ? 'LP Block' :
+          e.classroom?.startsWith('T') ? 'T Block' :
+          e.classroom?.startsWith('F') ? 'F Block' :
+          e.classroom?.startsWith('E') ? 'E Block' :
+          e.classroom?.startsWith('L') ? 'L Block' : 'Campus'
+        )
+      };
+    });
 
     return res.status(200).json({
       success: true,

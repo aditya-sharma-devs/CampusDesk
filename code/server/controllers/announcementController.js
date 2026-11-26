@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Announcement = require('../models/Announcement');
 
 // In-memory sample announcements for dev offline fallback & quick verification
@@ -10,8 +11,16 @@ let sampleAnnouncements = [
     senderRole: 'FACULTY_ORGANISATION',
     targetBatch: '3P14',
     title: 'Software Engineering Class Cancelled',
-    message: "Today's 09:40 AM Software Engineering lecture in T106 is cancelled due to a faculty department meeting. Extra makeup class will be scheduled next week.",
+    message: "Today's 10:30 AM Software Engineering lecture in T106 is cancelled due to a faculty department meeting. The room is now unoccupied and free for student self-study.",
     tag: 'CLASS_CANCELLED',
+    classroom: 'T106',
+    day: 'Monday',
+    startTime: '10:30',
+    endTime: '11:20',
+    slot: '10:30 AM - 11:20 AM',
+    subject: 'Software Engineering',
+    subjectCode: 'SE',
+    isClassCancelled: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString() // 35 mins ago
   },
   {
@@ -36,6 +45,14 @@ let sampleAnnouncements = [
     title: 'DBMS Surprise Evaluation Postponed',
     message: 'The short relational algebra quiz scheduled for today is postponed to Friday.',
     tag: 'RESCHEDULED',
+    classroom: 'LT303',
+    day: 'Monday',
+    startTime: '10:30',
+    endTime: '11:20',
+    slot: '10:30 AM - 11:20 AM',
+    subject: 'Database Management Systems',
+    subjectCode: 'DBMS',
+    isClassCancelled: true,
     createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString()
   },
   {
@@ -57,7 +74,19 @@ let sampleAnnouncements = [
 // @access  Private (Faculty / Organisation / Admin)
 exports.createAnnouncement = async (req, res) => {
   try {
-    const { targetBatch, title, message, tag } = req.body;
+    const { 
+      targetBatch, 
+      title, 
+      message, 
+      tag,
+      classroom,
+      day,
+      startTime,
+      endTime,
+      slot,
+      subject,
+      subjectCode
+    } = req.body;
 
     if (!targetBatch || !message) {
       return res.status(400).json({
@@ -69,6 +98,20 @@ exports.createAnnouncement = async (req, res) => {
     const cleanBatch = targetBatch.trim().toUpperCase();
     const cleanTitle = (title && title.trim()) || 'Teacher Announcement';
     const cleanTag = tag || 'ANNOUNCEMENT';
+    const isCancelled = cleanTag === 'CLASS_CANCELLED' || cleanTag === 'RESCHEDULED';
+
+    // Parse start and end time if slot string provided like '10:30 AM - 11:20 AM'
+    let effectiveStart = startTime ? startTime.trim() : '';
+    let effectiveEnd = endTime ? endTime.trim() : '';
+    let effectiveSlot = slot ? slot.trim() : '';
+
+    if (!effectiveStart && effectiveSlot) {
+      const parts = effectiveSlot.split('-');
+      if (parts.length === 2) {
+        effectiveStart = parts[0].trim().replace(/\s+(AM|PM)/i, '');
+        effectiveEnd = parts[1].trim().replace(/\s+(AM|PM)/i, '');
+      }
+    }
 
     const announcementData = {
       senderId: String(req.user.id || req.user._id || 'faculty_user'),
@@ -78,7 +121,15 @@ exports.createAnnouncement = async (req, res) => {
       targetBatch: cleanBatch,
       title: cleanTitle,
       message: message.trim(),
-      tag: cleanTag
+      tag: cleanTag,
+      classroom: classroom ? classroom.trim().toUpperCase() : '',
+      day: day ? day.trim() : '',
+      startTime: effectiveStart,
+      endTime: effectiveEnd,
+      slot: effectiveSlot,
+      subject: subject ? subject.trim() : '',
+      subjectCode: subjectCode ? subjectCode.trim().toUpperCase() : '',
+      isClassCancelled: isCancelled
     };
 
     let created = null;
@@ -94,9 +145,16 @@ exports.createAnnouncement = async (req, res) => {
       sampleAnnouncements.unshift(created);
     }
 
+    // Also keep local sample in sync for instant responsiveness
+    if (created && !sampleAnnouncements.some(a => a._id === created._id)) {
+      sampleAnnouncements.unshift(created);
+    }
+
     return res.status(201).json({
       success: true,
-      message: `Announcement broadcast successfully to Batch ${cleanBatch}.`,
+      message: isCancelled 
+        ? `Broadcast sent! Classroom ${announcementData.classroom || 'hall'} has been un-occupied for ${announcementData.day || 'scheduled slot'}.`
+        : `Announcement broadcast successfully to Batch ${cleanBatch}.`,
       data: created
     });
   } catch (error) {
@@ -166,9 +224,11 @@ exports.deleteAnnouncement = async (req, res) => {
     try {
       await Announcement.findByIdAndDelete(id);
     } catch (dbErr) {
-      // offline fallback
-      sampleAnnouncements = sampleAnnouncements.filter(a => a._id !== id);
+      console.warn('⚠️ DB offline during announcement delete.');
     }
+
+    // Keep sample announcements in sync
+    sampleAnnouncements = sampleAnnouncements.filter(a => a._id !== id);
 
     return res.status(200).json({
       success: true,
@@ -180,4 +240,49 @@ exports.deleteAnnouncement = async (req, res) => {
       message: 'Failed to delete announcement.'
     });
   }
+};
+
+/**
+ * Helper to retrieve all active class cancellations for a target day (or all days).
+ * Used by availabilityService, classroomController, and timetableController.
+ */
+exports.getActiveCancellations = async (targetDay) => {
+  let cancellations = [];
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      const query = {
+        tag: { $in: ['CLASS_CANCELLED', 'RESCHEDULED'] }
+      };
+      if (targetDay && targetDay.toUpperCase() !== 'ALL') {
+        query.$or = [
+          { day: { $regex: new RegExp(`^${targetDay.trim()}$`, 'i') } },
+          { day: '' },
+          { day: { $exists: false } }
+        ];
+      }
+      cancellations = await Announcement.find(query).lean();
+    } catch (dbErr) {
+      console.warn('⚠️ DB query failed in getActiveCancellations. Using in-memory dataset.');
+    }
+  }
+
+  // Include in-memory sample cancellations if database is empty or offline
+  if (!cancellations || cancellations.length === 0) {
+    cancellations = sampleAnnouncements.filter(a => 
+      (a.tag === 'CLASS_CANCELLED' || a.tag === 'RESCHEDULED' || a.isClassCancelled) &&
+      (!targetDay || targetDay.toUpperCase() === 'ALL' || !a.day || a.day.toLowerCase() === targetDay.trim().toLowerCase())
+    );
+  } else {
+    // Merge any memory items that might not have reached DB yet
+    sampleAnnouncements.forEach(sample => {
+      if ((sample.tag === 'CLASS_CANCELLED' || sample.tag === 'RESCHEDULED' || sample.isClassCancelled) &&
+          (!targetDay || targetDay.toUpperCase() === 'ALL' || !sample.day || sample.day.toLowerCase() === targetDay.trim().toLowerCase())) {
+        if (!cancellations.some(c => c._id === sample._id)) {
+          cancellations.push(sample);
+        }
+      }
+    });
+  }
+
+  return cancellations;
 };

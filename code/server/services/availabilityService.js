@@ -3,6 +3,7 @@
  * Core calculation engine for classroom occupancy, availability, and maintenance ticket tags.
  */
 
+const mongoose = require('mongoose');
 const Classroom = require('../models/Classroom');
 const TimetableEntry = require('../models/TimetableEntry');
 const { timeToMinutes, getCurrentDayName, getCurrentTimeStr } = require('../utils/timeUtils');
@@ -10,6 +11,7 @@ const { extractBlockFromRoom } = require('../utils/blockUtils');
 const { sampleClassrooms, sampleTimetableEntries } = require('../data/sampleTimetable');
 const { getUnresolvedTicketsMap } = require('../controllers/ticketController');
 const { getApprovedBookingsForDay } = require('../controllers/bookingController');
+const { getActiveCancellations } = require('../controllers/announcementController');
 
 /**
  * Calculates classroom availability for a given day and time slot.
@@ -26,11 +28,13 @@ async function getClassroomAvailability({ day, time, block, search }) {
   let classroomsData = [];
   let entriesData = [];
 
-  try {
-    classroomsData = await Classroom.find({ isActive: true }).lean();
-    entriesData = await TimetableEntry.find({ day: targetDay }).lean();
-  } catch (err) {
-    console.warn('⚠️ MongoDB fetch failed or offline. Using sample dataset fallback.');
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      classroomsData = await Classroom.find({ isActive: true }).lean();
+      entriesData = await TimetableEntry.find({ day: targetDay }).lean();
+    } catch (err) {
+      console.warn('⚠️ MongoDB fetch failed or offline. Using sample dataset fallback.');
+    }
   }
 
   // Fallback to sample data if database returned empty
@@ -49,6 +53,9 @@ async function getClassroomAvailability({ day, time, block, search }) {
   // Fetch approved room bookings for the target day
   const approvedBookingsToday = await getApprovedBookingsForDay(targetDay);
 
+  // Fetch active teacher cancellations for the target day
+  const activeCancellations = await getActiveCancellations(targetDay);
+
   // Evaluate status and ticket tags for each classroom
   const processedClassrooms = classroomsData.map(room => {
     const roomNumber = room.roomNumber.toUpperCase();
@@ -57,10 +64,47 @@ async function getClassroomAvailability({ day, time, block, search }) {
     // Get all timetable entries for this room today
     const roomEntriesToday = entriesData.filter(e => e.classroom.toUpperCase() === roomNumber);
 
+    // Helper: Determine if a specific timetable entry has been cancelled by an instructor
+    const isEntryCancelled = (entry) => {
+      const startMins = timeToMinutes(entry.startTime);
+      const endMins = timeToMinutes(entry.endTime);
+
+      return activeCancellations.some(c => {
+        if (!c.classroom) return false;
+        const sameRoom = c.classroom.toUpperCase() === roomNumber;
+        const sameDay = !c.day || c.day.toLowerCase() === targetDay.toLowerCase();
+        if (!sameRoom || !sameDay) return false;
+
+        // Check time matching
+        if (c.startTime && c.endTime) {
+          const cStart = timeToMinutes(c.startTime);
+          const cEnd = timeToMinutes(c.endTime);
+          return (cStart <= startMins && cEnd >= endMins) ||
+                 (c.startTime === entry.startTime && c.endTime === entry.endTime) ||
+                 (Math.abs(cStart - startMins) <= 15);
+        }
+
+        if (c.slot) {
+          const slotClean = c.slot.replace(/\s+(AM|PM)/gi, '');
+          if (slotClean.includes(entry.startTime)) return true;
+        }
+
+        // If batch also specified and matches
+        if (c.targetBatch && c.targetBatch !== 'ALL') {
+          if (entry.batch && entry.batch.toUpperCase() === c.targetBatch.toUpperCase()) {
+            return true;
+          }
+        }
+
+        return true;
+      });
+    };
+
     // Get approved bookings for this room today
     const roomBookingsToday = approvedBookingsToday.filter(b => b.roomNumber.toUpperCase() === roomNumber);
 
     // Active occupancy check (Requirement 18: EXCLUDE LABs from lecture occupancy)
+    // IMPORTANT: If class has been cancelled by instructor, un-occupy the classroom!
     const activeEntry = roomEntriesToday.find(entry => {
       if (entry.type === 'LAB' || (entry.subject && entry.subject.includes('[Lab]'))) {
         return false;
@@ -69,7 +113,22 @@ async function getClassroomAvailability({ day, time, block, search }) {
       const startMins = timeToMinutes(entry.startTime);
       const endMins = timeToMinutes(entry.endTime);
 
-      return targetMinutes >= startMins && targetMinutes < endMins;
+      const isInSlot = targetMinutes >= startMins && targetMinutes < endMins;
+      if (!isInSlot) return false;
+
+      // If cancelled, DO NOT OCCUPY!
+      if (isEntryCancelled(entry)) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Check if there was a class scheduled right now that was cancelled
+    const cancelledEntryRightNow = roomEntriesToday.find(entry => {
+      const startMins = timeToMinutes(entry.startTime);
+      const endMins = timeToMinutes(entry.endTime);
+      return targetMinutes >= startMins && targetMinutes < endMins && isEntryCancelled(entry);
     });
 
     // Active approved booking check
@@ -90,6 +149,16 @@ async function getClassroomAvailability({ day, time, block, search }) {
     // If ticket is RESOLVED or does not exist, activeTicket is null!
     const activeTicket = activeTicketsMap[roomNumber] || null;
 
+    // Tag schedule entries with isCancelled so the UI can clearly display it
+    const taggedRoomEntries = roomEntriesToday.map(e => {
+      const cancelled = isEntryCancelled(e);
+      return {
+        ...e,
+        isCancelled: cancelled,
+        status: cancelled ? 'CANCELLED' : 'SCHEDULED'
+      };
+    });
+
     // Combine timetable lectures and approved bookings for complete daily schedule
     const bookingScheduleEntries = roomBookingsToday.map(b => ({
       batch: b.category || 'Special Event',
@@ -103,7 +172,7 @@ async function getClassroomAvailability({ day, time, block, search }) {
       isBooking: true
     }));
 
-    const combinedSchedule = [...roomEntriesToday, ...bookingScheduleEntries].sort(
+    const combinedSchedule = [...taggedRoomEntries, ...bookingScheduleEntries].sort(
       (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
     );
 
@@ -114,6 +183,13 @@ async function getClassroomAvailability({ day, time, block, search }) {
       roomType: room.roomType || 'LECTURE',
       capacity: room.capacity || 60,
       status,
+      cancelledNotice: cancelledEntryRightNow ? {
+        subject: cancelledEntryRightNow.subject,
+        subjectCode: cancelledEntryRightNow.subjectCode,
+        startTime: cancelledEntryRightNow.startTime,
+        endTime: cancelledEntryRightNow.endTime,
+        batch: cancelledEntryRightNow.batch
+      } : null,
       // Active Maintenance / Issue Tag (null if RESOLVED or no ticket)
       activeTicket: activeTicket ? {
         id: activeTicket._id || activeTicket.ticketId,

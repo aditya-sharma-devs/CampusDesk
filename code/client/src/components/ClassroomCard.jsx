@@ -127,11 +127,21 @@ export default function ClassroomCard({ classroom, onViewSchedule, onViewTicket,
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   {isStudent ? 'Vacant Study Space' : 'Free during this time slot'}
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {isStudent 
-                    ? 'Classroom is currently empty. Suitable for individual self-study, reading, or quiet group discussion.'
-                    : 'Ready for lecture, guest seminar, makeup class, or student club event.'}
-                </p>
+                
+                {classroom.cancelledNotice ? (
+                  <div className="mt-2 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-[11px] font-bold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                    <span className="truncate">
+                      Cancelled: <strong>{classroom.cancelledNotice.subject}</strong> ({classroom.cancelledNotice.startTime} - {classroom.cancelledNotice.endTime}) • Room Unoccupied
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {isStudent 
+                      ? 'Classroom is currently empty. Suitable for individual self-study, reading, or quiet group discussion.'
+                      : 'Ready for lecture, guest seminar, makeup class, or student club event.'}
+                  </p>
+                )}
               </div>
 
               {/* Book Room Button - Only for Faculty & Admin */}

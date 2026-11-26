@@ -11,7 +11,11 @@ import {
   RefreshCw,
   Clock,
   Radio,
-  Sparkles
+  Sparkles,
+  Building2,
+  Calendar,
+  BookOpen,
+  Info
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +28,15 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
   const [tag, setTag] = useState('CLASS_CANCELLED');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
+  
+  // Specific cancellation / rescheduling parameters for un-occupying the room
+  const [day, setDay] = useState('Monday');
+  const [classroom, setClassroom] = useState('T106');
+  const [slot, setSlot] = useState('10:30 AM - 11:20 AM');
+  const [subject, setSubject] = useState('Software Engineering');
+  const [batchClasses, setBatchClasses] = useState([]);
+  const [fetchingSchedule, setFetchingSchedule] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -51,6 +64,57 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
     { label: 'Urgent Notice', value: 'URGENT', color: 'amber' },
     { label: 'General Announcement', value: 'ANNOUNCEMENT', color: 'blue' }
   ];
+
+  const STANDARD_SLOTS = [
+    { label: '08:50 AM - 09:40 AM', value: '08:50 AM - 09:40 AM', start: '08:50', end: '09:40' },
+    { label: '09:40 AM - 10:30 AM', value: '09:40 AM - 10:30 AM', start: '09:40', end: '10:30' },
+    { label: '10:30 AM - 11:20 AM', value: '10:30 AM - 11:20 AM', start: '10:30', end: '11:20' },
+    { label: '11:20 AM - 12:10 PM', value: '11:20 AM - 12:10 PM', start: '11:20', end: '12:10' },
+    { label: '01:00 PM - 01:50 PM', value: '01:00 PM - 01:50 PM', start: '13:00', end: '13:50' },
+    { label: '01:50 PM - 02:40 PM', value: '01:50 PM - 02:40 PM', start: '13:50', end: '14:40' },
+    { label: '02:40 PM - 03:30 PM', value: '02:40 PM - 03:30 PM', start: '14:40', end: '15:30' },
+    { label: '03:30 PM - 04:20 PM', value: '03:30 PM - 04:20 PM', start: '15:30', end: '16:20' }
+  ];
+
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // Fetch schedule for batch & day so teacher can 1-click select
+  useEffect(() => {
+    const fetchBatchClasses = async () => {
+      const effBatch = targetBatch === 'OTHER' ? customBatch.trim() : targetBatch;
+      if (!effBatch || effBatch === 'ALL') {
+        setBatchClasses([]);
+        return;
+      }
+      setFetchingSchedule(true);
+      try {
+        const res = await api.get('/timetable', {
+          params: { batch: effBatch, day }
+        });
+        if (res.data.success) {
+          setBatchClasses(res.data.data || []);
+        }
+      } catch (err) {
+        console.warn('Failed to load batch schedule:', err);
+      } finally {
+        setFetchingSchedule(false);
+      }
+    };
+
+    fetchBatchClasses();
+  }, [targetBatch, customBatch, day]);
+
+  const handleSelectQuickClass = (cls) => {
+    if (!cls) return;
+    setClassroom(cls.classroom);
+    setSubject(cls.subject);
+    const matchedSlot = STANDARD_SLOTS.find(s => s.start === cls.startTime) || {
+      value: `${cls.startTime} - ${cls.endTime}`
+    };
+    setSlot(matchedSlot.value);
+    setTitle(`${cls.subject} Class Cancelled (${cls.classroom})`);
+    setMessage(`Today's ${matchedSlot.value} ${cls.subject} lecture in ${cls.classroom} is cancelled. The classroom is now un-occupied and free for student self-study.`);
+  };
 
   const fetchRecent = async () => {
     setFetchingRecent(true);
@@ -84,9 +148,19 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
       return setError('Please type your broadcast message.');
     }
 
+    const isCancelledTag = tag === 'CLASS_CANCELLED' || tag === 'RESCHEDULED';
+
+    if (isCancelledTag && !classroom.trim()) {
+      return setError('Please specify the Classroom Room Number to un-occupy.');
+    }
+
+    const selectedSlotObj = STANDARD_SLOTS.find(s => s.value === slot);
+    const startTime = selectedSlotObj ? selectedSlotObj.start : (slot.split('-')[0] || '').trim();
+    const endTime = selectedSlotObj ? selectedSlotObj.end : (slot.split('-')[1] || '').trim();
+
     const defaultTitle = 
-      tag === 'CLASS_CANCELLED' ? `Class Cancelled: Batch ${effectiveBatch}` :
-      tag === 'RESCHEDULED' ? `Class Rescheduled: Batch ${effectiveBatch}` :
+      tag === 'CLASS_CANCELLED' ? `${subject || 'Lecture'} Cancelled (${classroom})` :
+      tag === 'RESCHEDULED' ? `${subject || 'Lecture'} Rescheduled (${classroom})` :
       tag === 'URGENT' ? `Urgent Notice for Batch ${effectiveBatch}` :
       `Announcement for Batch ${effectiveBatch}`;
 
@@ -96,11 +170,21 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
         targetBatch: effectiveBatch,
         title: title.trim() || defaultTitle,
         message: message.trim(),
-        tag
+        tag,
+        classroom: isCancelledTag ? classroom.trim().toUpperCase() : '',
+        day: isCancelledTag ? day : '',
+        slot: isCancelledTag ? slot : '',
+        startTime: isCancelledTag ? startTime : '',
+        endTime: isCancelledTag ? endTime : '',
+        subject: isCancelledTag ? subject.trim() : ''
       });
 
       if (res.data.success) {
-        setSuccessMsg(`Ping sent! Students of Batch ${effectiveBatch} will now see your broadcast.`);
+        setSuccessMsg(
+          isCancelledTag
+            ? `Success! Classroom ${classroom.toUpperCase()} has been un-occupied for ${day} ${slot}. Live directory and timetable updated!`
+            : `Ping sent! Students of Batch ${effectiveBatch} will now see your broadcast.`
+        );
         setMessage('');
         setTitle('');
         fetchRecent();
@@ -119,10 +203,13 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
     try {
       await api.delete(`/announcements/${id}`);
       setRecentBroadcasts(prev => prev.filter(b => b._id !== id));
+      if (onBroadcastSent) onBroadcastSent(null);
     } catch (err) {
       console.warn('Failed to delete announcement:', err);
     }
   };
+
+  const isCancellation = tag === 'CLASS_CANCELLED' || tag === 'RESCHEDULED';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -139,7 +226,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
                 Ping Batch / Broadcast Message
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Send an instant broadcast to students (e.g. Class Cancelled, Schedule change).
+                Send faculty notice or cancel class to automatically un-occupy the classroom.
               </p>
             </div>
           </div>
@@ -200,7 +287,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
                   />
                 ) : (
                   <div className="px-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-500 flex items-center">
-                    <span>Will ping all students belonging to <strong>Batch {targetBatch}</strong></span>
+                    <span>Targeting students of <strong>Batch {targetBatch}</strong></span>
                   </div>
                 )}
               </div>
@@ -239,10 +326,119 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
               </div>
             </div>
 
+            {/* Classroom & Timing Parameters (Visible for Class Cancelled / Rescheduled) */}
+            {isCancellation && (
+              <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/60 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-rose-600" />
+                    Classroom Slot to Un-Occupy
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200">
+                    Live Un-occupy
+                  </span>
+                </div>
+
+                {/* Quick Select from Timetable */}
+                {batchClasses.length > 0 && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                      Quick Pick from Scheduled Classes for Batch {targetBatch} on {day}:
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const selectedCls = batchClasses.find(c => c._id === e.target.value || `${c.startTime}-${c.classroom}` === e.target.value);
+                        if (selectedCls) handleSelectQuickClass(selectedCls);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>-- Select a class to auto-fill --</option>
+                      {batchClasses.map((c, i) => (
+                        <option key={i} value={c._id || `${c.startTime}-${c.classroom}`}>
+                          {c.startTime} - {c.endTime} | {c.classroom} | {c.subject} ({c.faculty || 'Faculty'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Day of Week */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                      Day of Week
+                    </label>
+                    <select
+                      value={day}
+                      onChange={(e) => setDay(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden"
+                    >
+                      {DAYS.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Classroom Room Number */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                      Classroom Room No.
+                    </label>
+                    <input
+                      type="text"
+                      required={isCancellation}
+                      value={classroom}
+                      onChange={(e) => setClassroom(e.target.value.toUpperCase())}
+                      placeholder="e.g. T106, LT303"
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-black uppercase text-slate-800 dark:text-slate-100 focus:outline-hidden"
+                    />
+                  </div>
+
+                  {/* Time Period Slot */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                      Time Slot
+                    </label>
+                    <select
+                      value={slot}
+                      onChange={(e) => setSlot(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden"
+                    >
+                      {STANDARD_SLOTS.map(s => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Subject Name */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                    Subject / Course Name
+                  </label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="e.g. Software Engineering, Computer Networks"
+                    className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="flex items-start gap-2 pt-1 text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-50/80 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>
+                    When pinged, <strong>{classroom || 'Classroom'}</strong> will immediately switch to <strong>Available</strong> for {day} during {slot}. It will not show occupied.
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Title / Headline (Optional) */}
             <div>
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                Headline / Subject (Optional)
+                Headline / Subject
               </label>
               <input
                 type="text"
@@ -263,7 +459,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
                 required
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type your message to students (e.g. Today's class at 09:40 in T106 is cancelled due to seminar. Extra session will be announced later)..."
+                placeholder="Type your message to students (e.g. Today's class at 10:30 in T106 is cancelled due to department meeting. The classroom is free for self-study)..."
                 className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none min-h-[70px]"
               />
             </div>
@@ -289,7 +485,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
                 className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
-                {loading ? 'Pinging Batch...' : 'Send Broadcast / Ping Batch'}
+                {loading ? 'Pinging Batch...' : isCancellation ? 'Broadcast & Un-Occupy Room' : 'Send Broadcast / Ping Batch'}
               </button>
             </div>
           </form>
@@ -298,7 +494,7 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Recent Broadcasts Sent
+                Recent Broadcasts & Cancellations
               </span>
               <button
                 type="button"
@@ -314,13 +510,13 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
               <p className="text-xs text-slate-400 py-3 text-center">No broadcasts sent yet.</p>
             ) : (
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {recentBroadcasts.slice(0, 6).map(b => (
+                {recentBroadcasts.slice(0, 8).map(b => (
                   <div
                     key={b._id}
                     className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-start justify-between gap-3 text-xs"
                   >
                     <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center flex-wrap gap-2">
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
                           Batch {b.targetBatch}
                         </span>
@@ -332,6 +528,11 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
                         }`}>
                           {b.tag?.replace('_', ' ')}
                         </span>
+                        {b.classroom && (
+                          <span className="px-1.5 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                            Room {b.classroom} Un-occupied
+                          </span>
+                        )}
                         <span className="text-[10px] text-slate-400">
                           by {b.senderName}
                         </span>
@@ -347,8 +548,8 @@ export default function TeacherBroadcastModal({ onClose, onBroadcastSent }) {
                     <button
                       type="button"
                       onClick={() => handleDelete(b._id)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0"
-                      title="Retract / Delete Broadcast"
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0"
+                      title="Retract / Restore Class Occupancy"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

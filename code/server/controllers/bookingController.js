@@ -438,12 +438,16 @@ exports.cancelBooking = async (req, res) => {
 exports.getApprovedBookingsForDay = async (day) => {
   if (!day) return [];
   let approved = [];
-  try {
-    approved = await Booking.find({ 
-      day: { $regex: new RegExp(`^${day}$`, 'i') }, 
-      status: 'APPROVED' 
-    }).lean();
-  } catch (err) {
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      approved = await Booking.find({ 
+        day: { $regex: new RegExp(`^${day}$`, 'i') }, 
+        status: 'APPROVED' 
+      }).lean();
+    } catch (err) {
+      approved = memoryBookings.filter(b => b.day.toLowerCase() === day.toLowerCase() && b.status === 'APPROVED');
+    }
+  } else {
     approved = memoryBookings.filter(b => b.day.toLowerCase() === day.toLowerCase() && b.status === 'APPROVED');
   }
 

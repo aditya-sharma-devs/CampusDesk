@@ -40,6 +40,47 @@ const announcementSchema = new mongoose.Schema(
       type: String,
       enum: ['CLASS_CANCELLED', 'RESCHEDULED', 'URGENT', 'ANNOUNCEMENT'],
       default: 'ANNOUNCEMENT'
+    },
+    classroom: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: ''
+    },
+    day: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    startTime: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    endTime: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    slot: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    subject: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    subjectCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: ''
+    },
+    isClassCancelled: {
+      type: Boolean,
+      default: false
     }
   },
   {

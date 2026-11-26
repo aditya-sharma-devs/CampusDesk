@@ -1,8 +1,10 @@
+const mongoose = require('mongoose');
 const { getClassroomAvailability } = require('../services/availabilityService');
 const TimetableEntry = require('../models/TimetableEntry');
 const Classroom = require('../models/Classroom');
 const { sampleTimetableEntries } = require('../data/sampleTimetable');
 const { extractBlockFromRoom } = require('../utils/blockUtils');
+const { getActiveCancellations } = require('./announcementController');
 
 // @desc    Get real-time or future classroom availability
 // @route   GET /api/classrooms/availability
@@ -40,10 +42,12 @@ exports.getClassroomDetails = async (req, res) => {
     const computedBlock = extractBlockFromRoom(roomNumber);
 
     let schedule = [];
-    try {
-      schedule = await TimetableEntry.find({ classroom: roomNumber }).lean();
-    } catch (dbErr) {
-      console.warn('⚠️ DB offline. Using sample dataset for room details.');
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        schedule = await TimetableEntry.find({ classroom: roomNumber }).lean();
+      } catch (dbErr) {
+        console.warn('⚠️ DB offline. Using sample dataset for room details.');
+      }
     }
 
     if (!schedule || schedule.length === 0) {
@@ -52,12 +56,38 @@ exports.getClassroomDetails = async (req, res) => {
       );
     }
 
+    // Check active cancellations for this classroom
+    const activeCancellations = await getActiveCancellations();
+    const taggedSchedule = schedule.map(entry => {
+      const isCancelled = activeCancellations.some(c => {
+        if (!c.classroom) return false;
+        const sameRoom = c.classroom.toUpperCase() === roomNumber;
+        const sameDay = !c.day || c.day.toLowerCase() === (entry.day || '').toLowerCase();
+        if (!sameRoom || !sameDay) return false;
+
+        if (c.startTime && c.endTime) {
+          return c.startTime === entry.startTime && c.endTime === entry.endTime;
+        }
+        if (c.slot) {
+          const sClean = c.slot.replace(/\s+(AM|PM)/gi, '');
+          if (sClean.includes(entry.startTime)) return true;
+        }
+        return true;
+      });
+
+      return {
+        ...entry,
+        isCancelled,
+        status: isCancelled ? 'CANCELLED' : 'SCHEDULED'
+      };
+    });
+
     // Organize weekly schedule by day
     const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const scheduleByDay = {};
 
     daysOrder.forEach(d => {
-      scheduleByDay[d] = schedule.filter(e => e.day.toLowerCase() === d.toLowerCase());
+      scheduleByDay[d] = taggedSchedule.filter(e => e.day.toLowerCase() === d.toLowerCase());
     });
 
     return res.status(200).json({
@@ -66,9 +96,9 @@ exports.getClassroomDetails = async (req, res) => {
         roomNumber,
         block: computedBlock,
         roomType: 'LECTURE',
-        totalWeeklyClasses: schedule.length,
+        totalWeeklyClasses: taggedSchedule.length,
         scheduleByDay,
-        rawSchedule: schedule
+        rawSchedule: taggedSchedule
       }
     });
   } catch (error) {

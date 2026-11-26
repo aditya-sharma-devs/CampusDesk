@@ -197,9 +197,13 @@ exports.updateTicketStatus = async (req, res) => {
 // Export helper to get unresolved tickets mapped by room number
 exports.getUnresolvedTicketsMap = async () => {
   let unresolved = [];
-  try {
-    unresolved = await Ticket.find({ status: { $in: ['PENDING', 'UNDER_MAINTENANCE'] } }).lean();
-  } catch (err) {
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      unresolved = await Ticket.find({ status: { $in: ['PENDING', 'UNDER_MAINTENANCE'] } }).lean();
+    } catch (err) {
+      unresolved = memoryTickets.filter(t => t.status === 'PENDING' || t.status === 'UNDER_MAINTENANCE');
+    }
+  } else {
     unresolved = memoryTickets.filter(t => t.status === 'PENDING' || t.status === 'UNDER_MAINTENANCE');
   }
 

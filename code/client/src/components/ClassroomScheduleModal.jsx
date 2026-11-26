@@ -114,15 +114,25 @@ export default function ClassroomScheduleModal({ classroom, onClose }) {
                 {currentDayEntries.map((entry, idx) => (
                   <div
                     key={idx}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 hover:border-thapar-500/40 transition-colors"
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border transition-colors ${
+                      entry.isCancelled
+                        ? 'bg-rose-50/60 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/60'
+                        : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800 hover:border-thapar-500/40'
+                    }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-thapar-100 dark:bg-thapar-900/50 text-thapar-600 dark:text-thapar-400 flex items-center justify-center shrink-0">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        entry.isCancelled
+                          ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300'
+                          : 'bg-thapar-100 dark:bg-thapar-900/50 text-thapar-600 dark:text-thapar-400'
+                      }`}>
                         <BookOpen className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        <div className="flex items-center flex-wrap gap-2">
+                          <span className={`text-sm font-bold ${
+                            entry.isCancelled ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'
+                          }`}>
                             {entry.subject}
                           </span>
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
@@ -131,6 +141,11 @@ export default function ClassroomScheduleModal({ classroom, onClose }) {
                           {entry.type === 'LAB' && (
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300">
                               LAB
+                            </span>
+                          )}
+                          {entry.isCancelled && (
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 animate-pulse">
+                              CANCELLED • ROOM FREE
                             </span>
                           )}
                         </div>
@@ -145,7 +160,11 @@ export default function ClassroomScheduleModal({ classroom, onClose }) {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-darkcard border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 self-start sm:self-center">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold self-start sm:self-center ${
+                      entry.isCancelled
+                        ? 'bg-rose-100/70 dark:bg-rose-900/50 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800'
+                        : 'bg-white dark:bg-darkcard border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}>
                       <Clock className="w-3.5 h-3.5 text-thapar-500" />
                       {formatTo12Hour(entry.startTime)} - {formatTo12Hour(entry.endTime)}
                     </div>
