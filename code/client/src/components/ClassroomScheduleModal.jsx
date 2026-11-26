@@ -118,7 +118,7 @@ export default function ClassroomScheduleModal({ classroom, onClose }) {
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-xl bg-thapar-100 dark:bg-thapar-900/50 text-thapar-600 dark:text-thapar-400 flex items-center justify-center shrink-0">
-                        <BookOpen className="w-4.5 h-4.5" />
+                        <BookOpen className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">

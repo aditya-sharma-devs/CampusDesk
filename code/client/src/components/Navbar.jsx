@@ -30,7 +30,7 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [appsMenuOpen, setAppsMenuOpen] = useState(false);
+  const [servicesMenuOpen, setServicesMenuOpen] = useState(false);
   const [ticketModalOpen, setTicketModalOpen] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [bookModalOpen, setBookModalOpen] = useState(false);
@@ -106,107 +106,116 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
 
             {user ? (
               <>
-                {/* Chrome-Style Apps Launcher Button (3x3 Grid) */}
+                {/* Services Launcher Button (3x3 Grid) */}
                 <div className="relative">
                   <button
                     onClick={() => {
-                      setAppsMenuOpen(!appsMenuOpen);
+                      setServicesMenuOpen(!servicesMenuOpen);
                       setDropdownOpen(false);
                     }}
                     className={`p-2.5 rounded-2xl border transition-all duration-200 flex items-center justify-center ${
-                      appsMenuOpen
+                      servicesMenuOpen
                         ? 'bg-thapar-50 border-thapar-300 text-thapar-700 dark:bg-thapar-950/80 dark:border-thapar-700 dark:text-thapar-300 shadow-md ring-2 ring-thapar-500/20'
                         : 'border-slate-200/90 dark:border-darkborder bg-white dark:bg-darkcard text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm'
                     }`}
-                    title="CampusDesk Apps & Tools"
+                    title="CampusDesk Services"
                   >
-                    <LayoutGrid className="w-4.5 h-4.5" />
+                    <LayoutGrid className="w-5 h-5" />
                   </button>
 
-                  {/* Apps Launcher Floating Popover Window */}
-                  {appsMenuOpen && (
+                  {/* Services Popover Window */}
+                  {servicesMenuOpen && (
                     <div
-                      className="absolute right-0 mt-2.5 w-80 sm:w-84 rounded-3xl bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder shadow-2xl p-4.5 z-50 animate-in fade-in slide-in-from-top-2"
-                      onMouseLeave={() => setAppsMenuOpen(false)}
+                      className="absolute right-0 mt-2.5 w-[340px] sm:w-[380px] rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-2xl p-5 z-50 animate-in fade-in slide-in-from-top-2"
+                      onMouseLeave={() => setServicesMenuOpen(false)}
                     >
-                      {/* Header of Square Window */}
-                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-darkborder">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-thapar-600 text-white flex items-center justify-center">
-                            <School className="w-3.5 h-3.5" />
+                      {/* Header of Services Window */}
+                      <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-slate-100 dark:border-darkborder">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-thapar-600 text-white flex items-center justify-center shadow-sm">
+                            <Sparkles className="w-4 h-4" />
                           </div>
                           <div>
-                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-white leading-none">
-                              CampusDesk Apps
+                            <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-none">
+                              CampusDesk Services
                             </h4>
-                            <p className="text-[10px] text-slate-400 mt-0.5">Quick Actions & Services</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Campus Tools & Utilities</p>
                           </div>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleInfo.pillClass}`}>
-                          {roleInfo.label}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleInfo.pillClass}`}>
+                            {roleInfo.label}
+                          </span>
+                          <button
+                            onClick={() => setServicesMenuOpen(false)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            title="Close services menu"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Grid of App Tiles */}
-                      <div className="grid grid-cols-2 gap-2.5">
+                      {/* Grid of Service Tiles */}
+                      <div className="grid grid-cols-2 gap-3">
                         
                         {/* FACULTY / ORGANISATION TILES */}
                         {isFacultyOrOrg && (
                           <>
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setBookModalOpen(true);
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <CalendarPlus className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Book Room</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Request empty hall</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Book Room</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Request empty hall</span>
                             </button>
 
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setMyBookingsOpen(true);
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <CalendarCheck2 className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">My Bookings</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Track approval status</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">My Bookings</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Track status & history</span>
                             </button>
 
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setTicketModalOpen(true);
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-amber-50/80 dark:hover:bg-amber-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-amber-50/80 dark:hover:bg-amber-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <Wrench className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Report Issue</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Facility maintenance</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Report Issue</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Facility maintenance</span>
                             </button>
 
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setChangePasswordOpen(true);
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-sky-50/80 dark:hover:bg-sky-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-sky-50/80 dark:hover:bg-sky-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <KeyRound className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Password</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Change credentials</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Change Password</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Account credentials</span>
                             </button>
                           </>
                         )}
@@ -216,75 +225,73 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
                           <>
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setAdminBookingsOpen(true);
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <CalendarCheck2 className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Approvals</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Review room bookings</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Approvals</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Review room bookings</span>
                             </button>
 
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setAdminPanelOpen(true);
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-amber-50/80 dark:hover:bg-amber-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-amber-50/80 dark:hover:bg-amber-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <ShieldCheck className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Maintenance</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Resolve tickets</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Maintenance</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Resolve ticket issues</span>
                             </button>
 
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setBookModalOpen(true);
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-blue-50/80 dark:hover:bg-blue-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <CalendarPlus className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Book Room</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Direct booking</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Book Room</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Direct admin booking</span>
                             </button>
 
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setMyBookingsOpen(true);
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <Calendar className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">All Bookings</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Reservation list</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">All Bookings</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Campus master log</span>
                             </button>
 
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setChangePasswordOpen(true);
                               }}
-                              className="col-span-2 flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-sky-50/80 dark:hover:bg-sky-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-all text-left group"
+                              className="col-span-2 flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-sky-50/80 dark:hover:bg-sky-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                                  <KeyRound className="w-4 h-4" />
-                                </div>
-                                <div>
-                                  <span className="text-xs font-extrabold text-slate-900 dark:text-white block">Security & Password</span>
-                                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Change admin password</span>
-                                </div>
+                              <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs flex-shrink-0">
+                                <KeyRound className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">Security & Credentials</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block leading-snug truncate">Change admin password</span>
                               </div>
                             </button>
                           </>
@@ -295,47 +302,45 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
                           <>
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 navigate('/dashboard');
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <BookOpenCheck className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Vacant Rooms</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Find study spots</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Vacant Rooms</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Find empty study spots</span>
                             </button>
 
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 navigate('/dashboard');
                               }}
-                              className="flex flex-col items-start p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-blue-50/80 dark:hover:bg-blue-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 transition-all text-left group"
+                              className="flex flex-col items-start p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform shadow-xs">
                                 <Calendar className="w-5 h-5" />
                               </div>
-                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">Timetables</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Weekly schedules</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Timetables</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">Weekly schedules</span>
                             </button>
 
                             <button
                               onClick={() => {
-                                setAppsMenuOpen(false);
+                                setServicesMenuOpen(false);
                                 setChangePasswordOpen(true);
                               }}
-                              className="col-span-2 flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 hover:bg-sky-50/80 dark:hover:bg-sky-950/50 border border-slate-200/80 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-all text-left group"
+                              className="col-span-2 flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 hover:bg-sky-50/80 dark:hover:bg-sky-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-sky-200 dark:hover:border-sky-800 transition-all text-left group shadow-xs hover:shadow-sm"
                             >
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                                  <KeyRound className="w-4 h-4" />
-                                </div>
-                                <div>
-                                  <span className="text-xs font-extrabold text-slate-900 dark:text-white block">Change Password</span>
-                                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Account security settings</span>
-                                </div>
+                              <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs flex-shrink-0">
+                                <KeyRound className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white block leading-tight">Change Password</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block leading-snug truncate">Account security settings</span>
                               </div>
                             </button>
                           </>
@@ -351,7 +356,7 @@ export default function Navbar({ onRefreshData, bookModalInitialRoom, onClearBoo
                   <button
                     onClick={() => {
                       setDropdownOpen(!dropdownOpen);
-                      setAppsMenuOpen(false);
+                      setServicesMenuOpen(false);
                     }}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-darkborder hover:bg-slate-100 dark:hover:bg-darkcard transition-colors focus:outline-none"
                   >
