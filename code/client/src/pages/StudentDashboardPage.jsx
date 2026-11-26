@@ -1,437 +1,545 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, 
-  Filter, 
   Calendar, 
   Clock, 
   Building2, 
-  CheckCircle2, 
-  XCircle, 
-  RefreshCw, 
-  Layers, 
-  HelpCircle,
-  X,
-  Wrench,
+  BookOpen, 
   GraduationCap,
-  BookOpen,
   Sparkles,
-  CalendarCheck2
+  X,
+  RefreshCw,
+  TableProperties,
+  ArrowRight,
+  User,
+  Users,
+  Filter
 } from 'lucide-react';
 import api from '../services/api';
 import Navbar from '../components/Navbar';
-import ClassroomCard from '../components/ClassroomCard';
-import ClassroomScheduleModal from '../components/ClassroomScheduleModal';
-import TicketDetailModal from '../components/TicketDetailModal';
-import CustomSelect from '../components/CustomSelect';
-import { STANDARD_SLOTS, DAYS_OF_WEEK } from '../utils/timeFormat';
+import { formatTo12Hour, DAYS_OF_WEEK } from '../utils/timeFormat';
 
 export default function StudentDashboardPage() {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(null);
-  const [selectedDay, setSelectedDay] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [selectedBlock, setSelectedBlock] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [onlyVacant, setOnlyVacant] = useState(false);
-  const [selectedClassroomModal, setSelectedClassroomModal] = useState(null);
-  const [selectedTicketModal, setSelectedTicketModal] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [allEntries, setAllEntries] = useState([]);
+  
+  // Search state
+  const [classroomQuery, setClassroomQuery] = useState('');
+  const [subjectQuery, setSubjectQuery] = useState('');
+  const [selectedDayFilter, setSelectedDayFilter] = useState('ALL');
 
-  // Fetch availability data whenever filters change (with silent background update support)
-  const fetchAvailability = async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
+  // Fetch timetable entries on load
+  const fetchTimetable = async () => {
+    setLoading(true);
     try {
-      const params = {};
-      if (selectedDay) params.day = selectedDay;
-      if (selectedTime) params.time = selectedTime;
-      if (selectedBlock && selectedBlock !== 'ALL') params.block = selectedBlock;
-      if (searchQuery) params.search = searchQuery;
-
-      const res = await api.get('/classrooms/availability', { params });
+      const res = await api.get('/timetable');
       if (res.data.success) {
-        setData(res.data.data);
+        setAllEntries(res.data.data || []);
       }
     } catch (err) {
-      console.error('Failed to fetch student availability report:', err);
+      console.error('Failed to fetch timetable:', err);
     } finally {
-      if (!isBackground) setLoading(false);
+      setLoading(false);
+      setInitialLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAvailability();
-  }, [selectedDay, selectedTime, selectedBlock]);
+    fetchTimetable();
+  }, []);
 
-  // Debounced search trigger
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchAvailability();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  // Distinct lists for quick chips & datalists
+  const { uniqueClassrooms, uniqueSubjects } = useMemo(() => {
+    const classSet = new Set();
+    const subjMap = new Map(); // code/name -> label
 
-  // Live Auto-Refresh: silent polling every 8s & on window focus / tab switch
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchAvailability(true);
-    }, 8000);
-
-    const handleFocus = () => {
-      if (document.visibilityState === 'visible') {
-        fetchAvailability(true);
+    allEntries.forEach(e => {
+      if (e.classroom) classSet.add(e.classroom.toUpperCase());
+      if (e.subject) {
+        subjMap.set(e.subjectCode ? `${e.subject} (${e.subjectCode})` : e.subject, {
+          name: e.subject,
+          code: e.subjectCode || ''
+        });
       }
-    };
+    });
 
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleFocus);
+    const classrooms = Array.from(classSet).sort();
+    const subjects = Array.from(subjMap.values());
+    return { uniqueClassrooms: classrooms, uniqueSubjects: subjects };
+  }, [allEntries]);
 
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleFocus);
-    };
-  }, [selectedDay, selectedTime, selectedBlock, searchQuery]);
+  // Is any search active?
+  const hasSearch = classroomQuery.trim() !== '' || subjectQuery.trim() !== '';
 
-  const resetFilters = () => {
-    setSelectedDay('');
-    setSelectedTime('');
-    setSelectedBlock('ALL');
-    setSearchQuery('');
-    setOnlyVacant(false);
+  // Filter entries based on classroom and/or subject
+  const filteredEntries = useMemo(() => {
+    if (!hasSearch) return [];
+
+    const cQ = classroomQuery.trim().toLowerCase();
+    const sQ = subjectQuery.trim().toLowerCase();
+
+    const dayOrder = { 'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6, 'sunday': 7 };
+
+    return allEntries
+      .filter(entry => {
+        // Classroom filter
+        if (cQ) {
+          const room = (entry.classroom || '').toLowerCase();
+          const block = (entry.block || '').toLowerCase();
+          if (!room.includes(cQ) && !block.includes(cQ)) return false;
+        }
+
+        // Subject filter
+        if (sQ) {
+          const subj = (entry.subject || '').toLowerCase();
+          const code = (entry.subjectCode || '').toLowerCase();
+          if (!subj.includes(sQ) && !code.includes(sQ)) return false;
+        }
+
+        // Day tab filter
+        if (selectedDayFilter !== 'ALL') {
+          if ((entry.day || '').toLowerCase() !== selectedDayFilter.toLowerCase()) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const orderA = dayOrder[a.day?.toLowerCase()] || 8;
+        const orderB = dayOrder[b.day?.toLowerCase()] || 8;
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.startTime || '').localeCompare(b.startTime || '');
+      });
+  }, [allEntries, classroomQuery, subjectQuery, selectedDayFilter, hasSearch]);
+
+  const resetSearch = () => {
+    setClassroomQuery('');
+    setSubjectQuery('');
+    setSelectedDayFilter('ALL');
   };
 
-  const hasActiveFilters = selectedDay !== '' || selectedTime !== '' || selectedBlock !== 'ALL' || searchQuery !== '' || onlyVacant;
+  // Helper for type badges
+  const renderTypeBadge = (type) => {
+    const t = (type || 'LECTURE').toUpperCase();
+    if (t === 'LAB') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+          LAB
+        </span>
+      );
+    }
+    if (t === 'TUTORIAL') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+          TUTORIAL
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+        LECTURE
+      </span>
+    );
+  };
 
-  const summary = data?.summary || { totalClassrooms: 0, availableCount: 0, occupiedCount: 0, bookedCount: 0, maintenanceCount: 0, pendingIssueCount: 0, blockSummary: {} };
-  const allClassrooms = data?.classrooms || [];
-  const meta = data?.meta || {};
-
-  // Filter classrooms by onlyVacant if toggle is active
-  const displayedClassrooms = onlyVacant
-    ? allClassrooms.filter(c => c.status === 'AVAILABLE')
-    : allClassrooms;
-
-  const dayOptions = [
-    { label: 'Current Today', value: '' },
-    ...DAYS_OF_WEEK.map(d => ({ label: d, value: d }))
-  ];
-
-  const availableBlocks = ['ALL', 'T Block', 'LT Block', 'F Block', 'E Block', 'L Block', 'LP Block'];
+  const activeDaysPresent = useMemo(() => {
+    const days = new Set(filteredEntries.map(e => e.day));
+    return Array.from(days);
+  }, [filteredEntries]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-darkbg text-slate-900 dark:text-slate-100 transition-colors pb-16">
-      <Navbar onRefreshData={fetchAvailability} />
+      <Navbar onRefreshData={fetchTimetable} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex-1 w-full space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex-1 w-full space-y-6">
         
-        {/* Student Page Top Hero Header */}
+        {/* Header Hero Banner */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold mb-2 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold mb-2 shadow-xs">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Student Study Space & Vacancy Finder</span>
+              <span>Student Schedule & Class Timetable Explorer</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Find Vacant Classrooms for Study & Group Work
+              Classroom & Subject Timetable Search
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
-              Locate empty lecture halls across Thapar campus to sit, read, review notes, or hold group discussions between scheduled classes.
+              Enter a classroom room number to view all its classes daywise and timewise, or enter a subject name to see where and when it takes place across campus.
             </p>
           </div>
 
-          {/* Current Target Pill with Live Dot */}
-          <div className="flex items-center gap-2.5 self-start md:self-auto px-4 py-2.5 rounded-2xl bg-white dark:bg-darkcard border border-slate-200/80 dark:border-darkborder shadow-sm text-xs font-semibold text-slate-700 dark:text-slate-300">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span>Targeting: <strong className="text-thapar-600 dark:text-thapar-400 font-bold">{meta.day || 'Today'}</strong> at <strong className="text-thapar-600 dark:text-thapar-400 font-bold">{meta.time || 'Current Time'}</strong></span>
+          <div className="flex items-center gap-2.5 self-start md:self-auto">
+            <button
+              onClick={fetchTimetable}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-xs"
+              title="Refresh Timetable Data"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-500' : ''}`} />
+              Refresh Data
+            </button>
           </div>
         </div>
 
-        {/* Student Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
-          
-          {/* Vacant Study Space (Featured) */}
-          <div 
-            onClick={() => setOnlyVacant(!onlyVacant)}
-            className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between cursor-pointer transition-all hover:scale-[1.02] ${
-              onlyVacant 
-                ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-400 dark:border-emerald-700 ring-2 ring-emerald-500/30'
-                : 'bg-white dark:bg-darkcard border-slate-200/90 dark:border-darkborder'
-            }`}
-          >
-            <div>
-              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
-                Vacant for Study
-                {onlyVacant && <span className="text-[10px] bg-emerald-200 dark:bg-emerald-800 px-1.5 py-0.2 rounded font-black">ACTIVE</span>}
-              </p>
-              <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-                {summary.availableCount}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Click to view vacant only</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-          </div>
-
-          {/* Classes in Session */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
-                In-Session Classes
-              </p>
-              <p className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-1">
-                {summary.occupiedCount}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Lectures ongoing</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200 dark:border-rose-800">
-              <BookOpen className="w-6 h-6" />
-            </div>
-          </div>
-
-          {/* Reserved Events */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                Reserved Events
-              </p>
-              <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
-                {summary.bookedCount || 0}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Club & seminar slots</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
-              <CalendarCheck2 className="w-6 h-6" />
-            </div>
-          </div>
-
-          {/* Total Classrooms */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Total Rooms
-              </p>
-              <p className="text-3xl font-black text-slate-900 dark:text-white mt-1">
-                {summary.totalClassrooms}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Across 6 blocks</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
-              <Building2 className="w-6 h-6" />
-            </div>
-          </div>
-
-          {/* Maintenance */}
-          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between col-span-2 lg:col-span-1">
-            <div>
-              <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                Maintenance
-              </p>
-              <p className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">
-                {summary.maintenanceCount || 0}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Reported repairs</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-800">
-              <Wrench className="w-6 h-6" />
-            </div>
-          </div>
-
-        </div>
-
-        {/* Student Search & Filters Panel */}
-        <div className="p-6 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm space-y-6">
-          
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Dual Search & Filter Control Panel */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-emerald-500" />
+              <TableProperties className="w-4 h-4 text-emerald-500" />
               <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                Study Space Filters
+                Schedule Search Criteria
               </h3>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Quick 1-Click Toggle for Vacant Only */}
+            {hasSearch && (
               <button
-                onClick={() => setOnlyVacant(!onlyVacant)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-sm ${
-                  onlyVacant
-                    ? 'bg-emerald-600 text-white shadow-emerald-500/25'
-                    : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                }`}
+                onClick={resetSearch}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/80"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{onlyVacant ? 'Showing: Vacant Only' : 'Show Vacant Only'}</span>
+                <X className="w-3.5 h-3.5" />
+                Clear Search
               </button>
-
-              {hasActiveFilters && (
-                <button
-                  onClick={resetFilters}
-                  className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  Reset
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Two Prominent Search Fields: Classroom and Subject */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             
-            {/* Custom Day Selector */}
-            <CustomSelect
-              label="Day of Week"
-              options={dayOptions}
-              value={selectedDay}
-              onChange={setSelectedDay}
-              icon={Calendar}
-              placeholder="Current Today"
-            />
-
-            {/* Custom Time Slot Selector */}
-            <CustomSelect
-              label="Time Slot"
-              options={STANDARD_SLOTS}
-              value={selectedTime}
-              onChange={setSelectedTime}
-              icon={Clock}
-              placeholder="Current Time"
-            />
-
-            {/* Room Search Input */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                Search Room Number or Course
+            {/* Search Option 1: By Classroom */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-indigo-500" />
+                1. Search by Classroom (Daywise & Timewise)
               </label>
               <div className="relative">
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="e.g. LT301, T106, E102..."
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white dark:focus:bg-darkcard transition-all"
+                  value={classroomQuery}
+                  onChange={(e) => setClassroomQuery(e.target.value)}
+                  placeholder="Type classroom e.g. T106, LT303, F201, E104..."
+                  className={`w-full pl-10 pr-10 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 transition-all ${
+                    classroomQuery.trim()
+                      ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-white dark:bg-darkcard'
+                      : 'border-slate-200/80 dark:border-slate-800 focus:ring-indigo-500/20 focus:border-indigo-500'
+                  }`}
                 />
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                {classroomQuery && (
+                  <button
+                    onClick={() => setClassroomQuery('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Classroom Quick Suggestion Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-bold text-slate-400 mr-1">Quick Select:</span>
+                {['T106', 'LT303', 'F201', 'E104', 'L302', 'LP109', 'LT301', 'F202'].map(room => (
+                  <button
+                    key={room}
+                    onClick={() => setClassroomQuery(room)}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
+                      classroomQuery.toUpperCase() === room
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {room}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Search Option 2: By Subject */}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-emerald-500" />
+                2. Search by Subject Name or Code (Timewise & Classroomwise)
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={subjectQuery}
+                  onChange={(e) => setSubjectQuery(e.target.value)}
+                  placeholder="Type subject e.g. Software Engineering, SE, CAO, DBMS, CN..."
+                  className={`w-full pl-10 pr-10 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:ring-2 transition-all ${
+                    subjectQuery.trim()
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-white dark:bg-darkcard'
+                      : 'border-slate-200/80 dark:border-slate-800 focus:ring-emerald-500/20 focus:border-emerald-500'
+                  }`}
+                />
+                <BookOpen className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                {subjectQuery && (
+                  <button
+                    onClick={() => setSubjectQuery('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Subject Quick Suggestion Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-bold text-slate-400 mr-1">Quick Select:</span>
+                {[
+                  { label: 'SE', title: 'Software Engineering' },
+                  { label: 'CAO', title: 'Computer Architecture and Organization' },
+                  { label: 'CC', title: 'Cloud Computing' },
+                  { label: 'CN', title: 'Computer Networks' },
+                  { label: 'DBMS', title: 'Database Management Systems' },
+                  { label: 'AI', title: 'Artificial Intelligence' },
+                  { label: 'OS', title: 'Operating Systems' }
+                ].map(sub => (
+                  <button
+                    key={sub.label}
+                    onClick={() => setSubjectQuery(sub.label)}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
+                      subjectQuery.toUpperCase() === sub.label || subjectQuery.toLowerCase() === sub.title.toLowerCase()
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                    title={sub.title}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
               </div>
             </div>
 
           </div>
 
-          {/* Academic Block Tabs */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-2">
-                Academic Block:
-              </span>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none w-full">
-                {availableBlocks.map(b => {
-                  const isSelected = selectedBlock === b;
+          {/* Active Search Meta Banner */}
+          {hasSearch && (
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 dark:text-slate-400 font-semibold">Active Criteria:</span>
+                {classroomQuery && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold">
+                    <Building2 className="w-3.5 h-3.5" />
+                    Classroom: {classroomQuery.toUpperCase()}
+                  </span>
+                )}
+                {subjectQuery && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Subject: {subjectQuery}
+                  </span>
+                )}
+              </div>
+
+              {/* Day filter tabs for active search */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-[10px] font-bold text-slate-400 mr-1 shrink-0">Day:</span>
+                {['ALL', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => {
+                  const isSelected = selectedDayFilter === d;
                   return (
                     <button
-                      key={b}
-                      onClick={() => setSelectedBlock(b)}
-                      className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition-all shrink-0 ${
+                      key={d}
+                      onClick={() => setSelectedDayFilter(d)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
                         isSelected
-                          ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]'
-                          : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900'
+                          ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     >
-                      {b}
+                      {d}
                     </button>
                   );
                 })}
               </div>
             </div>
-          </div>
-
-        </div>
-
-        {/* Classroom Directory Area */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-emerald-500" />
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                Classroom Directory
-              </h2>
-              {onlyVacant && (
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  Showing Vacant Only ({displayedClassrooms.length})
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2.5">
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Live Sync Active</span>
-              </div>
-              <button
-                onClick={() => fetchAvailability(false)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-sm"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="py-20 text-center space-y-3">
-              <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Finding vacant classrooms for you...</p>
-            </div>
-          ) : displayedClassrooms.length === 0 ? (
-            <div className="py-16 text-center bg-white dark:bg-darkcard border border-slate-200 dark:border-darkborder rounded-3xl p-8 space-y-3">
-              <HelpCircle className="w-10 h-10 text-slate-400 mx-auto" />
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-                {onlyVacant ? 'No Vacant Classrooms Right Now' : 'No Classrooms Found'}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                {onlyVacant 
-                  ? 'All classrooms in this academic block are currently occupied by lectures or events. Try selecting another block or turning off the vacant filter.'
-                  : 'No classrooms match your filter criteria. Try resetting filters.'}
-              </p>
-              {onlyVacant && (
-                <button
-                  onClick={() => setOnlyVacant(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors mt-2"
-                >
-                  Show All Classrooms
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {displayedClassrooms.map((room) => (
-                <ClassroomCard
-                  key={room.id}
-                  classroom={room}
-                  onViewSchedule={(cls) => setSelectedClassroomModal(cls)}
-                  onViewTicket={(tkt) => setSelectedTicketModal(tkt)}
-                  // onBookRoom is NOT passed for students!
-                />
-              ))}
-            </div>
           )}
         </div>
 
+        {/* Schedule Output Table Area */}
+        <div className="rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm overflow-hidden">
+          
+          {/* Table Header Row */}
+          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-darkborder flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-emerald-500" />
+                Schedule & Class Timetable
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {!hasSearch 
+                  ? 'Table will populate once you input a Classroom or Subject above.'
+                  : classroomQuery && !subjectQuery
+                  ? `Showing full Daywise & Timewise schedule for Classroom ${classroomQuery.toUpperCase()}`
+                  : subjectQuery && !classroomQuery
+                  ? `Showing all Timewise & Classroomwise sessions for Subject "${subjectQuery}"`
+                  : `Showing sessions for "${subjectQuery}" in Classroom ${classroomQuery.toUpperCase()}`}
+              </p>
+            </div>
+
+            {hasSearch && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold px-3 py-1.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  {filteredEntries.length} {filteredEntries.length === 1 ? 'Class' : 'Classes'} Scheduled
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Content: Empty State vs Loaded Schedule Table */}
+          {!hasSearch ? (
+            /* EMPTY INITIAL STATE */
+            <div className="py-20 px-6 text-center space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-sm">
+                <TableProperties className="w-8 h-8" />
+              </div>
+              <div className="max-w-md mx-auto">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                  Schedule Table is Currently Empty
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  Enter a <strong>Classroom</strong> in the search bar above to see its complete daywise and timewise weekly classes, or enter a <strong>Subject name / code</strong> to see where and when it takes place across campus.
+                </p>
+              </div>
+
+              {/* Sample Quick Action Triggers */}
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto">
+                <button
+                  onClick={() => setClassroomQuery('T106')}
+                  className="px-4 py-2 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-extrabold transition-all flex items-center gap-1.5"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  View Classroom T106 Schedule
+                </button>
+                <button
+                  onClick={() => setSubjectQuery('Software Engineering')}
+                  className="px-4 py-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-extrabold transition-all flex items-center gap-1.5"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  View "Software Engineering" Classes
+                </button>
+                <button
+                  onClick={() => setClassroomQuery('LT303')}
+                  className="px-4 py-2 rounded-2xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-extrabold transition-all flex items-center gap-1.5"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  View Classroom LT303 Schedule
+                </button>
+              </div>
+            </div>
+          ) : filteredEntries.length === 0 ? (
+            /* NO RESULTS MATCHING SEARCH */
+            <div className="py-16 px-6 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                <Search className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+                No Classes Found Matching Criteria
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                No scheduled lectures or labs matched your current search. Try selecting a different classroom or subject name.
+              </p>
+              <button
+                onClick={resetSearch}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors mt-2"
+              >
+                Reset Search Filters
+              </button>
+            </div>
+          ) : (
+            /* ACTIVE POPULATED SCHEDULE TABLE */
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="py-3.5 px-5 sm:px-6">Day of Week</th>
+                    <th className="py-3.5 px-4">Time Period / Slot</th>
+                    <th className="py-3.5 px-4">Classroom</th>
+                    <th className="py-3.5 px-5">Subject & Code</th>
+                    <th className="py-3.5 px-4">Type</th>
+                    <th className="py-3.5 px-5">Faculty / Instructor</th>
+                    <th className="py-3.5 px-5 sm:px-6">Batch</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-medium">
+                  {filteredEntries.map((entry, idx) => {
+                    const isLab = entry.type === 'LAB';
+                    return (
+                      <tr 
+                        key={idx}
+                        className="hover:bg-slate-50/90 dark:hover:bg-slate-800/40 transition-colors"
+                      >
+                        {/* Day */}
+                        <td className="py-3.5 px-5 sm:px-6 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            {entry.day}
+                          </span>
+                        </td>
+
+                        {/* Time Slot */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold font-mono text-xs">
+                            <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <span>{formatTo12Hour(entry.startTime)} - {formatTo12Hour(entry.endTime)}</span>
+                          </div>
+                        </td>
+
+                        {/* Classroom (with block) */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-extrabold border border-indigo-200 dark:border-indigo-800 shadow-2xs">
+                              {entry.classroom}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-semibold">
+                              {entry.block}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Subject & Code */}
+                        <td className="py-3.5 px-5">
+                          <div>
+                            <span className="font-bold text-slate-900 dark:text-white block">
+                              {entry.subject}
+                            </span>
+                            {entry.subjectCode && (
+                              <span className="inline-block mt-0.5 text-[10px] font-mono font-extrabold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                {entry.subjectCode}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Class Type */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {renderTypeBadge(entry.type)}
+                        </td>
+
+                        {/* Faculty */}
+                        <td className="py-3.5 px-5 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="font-medium">{entry.faculty || 'Faculty Member'}</span>
+                          </div>
+                        </td>
+
+                        {/* Batch */}
+                        <td className="py-3.5 px-5 sm:px-6 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-semibold text-[11px]">
+                            <Users className="w-3 h-3 text-slate-400" />
+                            {entry.batch || 'All'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+        </div>
+
       </main>
-
-      {/* Classroom Timetable Schedule Modal Drawer */}
-      {selectedClassroomModal && (
-        <ClassroomScheduleModal
-          classroom={selectedClassroomModal}
-          onClose={() => setSelectedClassroomModal(null)}
-        />
-      )}
-
-      {/* Ticket Details View Modal (Read-only for info) */}
-      {selectedTicketModal && (
-        <TicketDetailModal
-          ticket={selectedTicketModal}
-          onClose={() => setSelectedTicketModal(null)}
-        />
-      )}
     </div>
   );
 }
