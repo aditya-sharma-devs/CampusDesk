@@ -10,7 +10,8 @@ import {
   CheckCircle2, 
   MessageSquareQuote,
   Sparkles,
-  Info
+  Search,
+  Filter
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -18,15 +19,25 @@ import { useAuth } from '../context/AuthContext';
 export default function StudentBroadcastModal({ onClose }) {
   const { user } = useAuth();
   
-  // Student's personal batch identity
-  const defaultBatch = user?.batch || '3P14';
-  const [selectedBatch, setSelectedBatch] = useState(defaultBatch);
+  // Student's personal registered batch identity
+  const registeredBatch = user?.batch || '3P14';
+  
+  // 3 Clear Modes: 'registered' (My Batch) | 'all' (All Batches) | 'custom' (Custom Batch)
+  const [filterMode, setFilterMode] = useState('registered');
+  const [customBatchInput, setCustomBatchInput] = useState('');
+  const [selectedBatch, setSelectedBatch] = useState(registeredBatch);
+  
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const batches = ['3P14', '3CO1', '3CO2', '3CO3', '3CO4', '3CO5', '3CO6', '3ENC1', 'ALL'];
-
   const fetchBroadcasts = async () => {
+    // If in custom mode and no custom batch is entered yet
+    if (filterMode === 'custom' && !selectedBatch) {
+      setAnnouncements([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await api.get('/announcements', {
@@ -44,7 +55,7 @@ export default function StudentBroadcastModal({ onClose }) {
 
   useEffect(() => {
     fetchBroadcasts();
-  }, [selectedBatch]);
+  }, [selectedBatch, filterMode]);
 
   // Format timestamp nicely
   const formatTime = (isoString) => {
@@ -107,7 +118,11 @@ export default function StudentBroadcastModal({ onClose }) {
                   Teacher's Messages & Broadcasts
                 </h3>
                 <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-black uppercase">
-                  Batch {selectedBatch}
+                  {filterMode === 'all' 
+                    ? 'All Batches' 
+                    : filterMode === 'registered' 
+                      ? `Batch ${registeredBatch}` 
+                      : (selectedBatch ? `Batch ${selectedBatch}` : 'Custom Batch')}
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -133,27 +148,119 @@ export default function StudentBroadcastModal({ onClose }) {
           </div>
         </div>
 
-        {/* Batch Quick Switch Bar */}
-        <div className="px-6 py-2.5 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-xs">
-          <span className="text-[11px] font-bold text-slate-500 shrink-0 flex items-center gap-1">
-            <Users className="w-3.5 h-3.5 text-emerald-500" />
-            Your Batch:
-          </span>
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none w-full justify-end">
-            {batches.map(b => (
+        {/* Batch Filter Bar: Registered Batch | All Batches | Custom Batch */}
+        <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-800 space-y-2.5 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 shrink-0">
+              <Users className="w-3.5 h-3.5 text-emerald-500" />
+              View Broadcasts For:
+            </span>
+
+            {/* 3 Clear Options */}
+            <div className="inline-flex items-center p-1 rounded-2xl bg-slate-200/70 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 w-full sm:w-auto">
+              {/* 1. Registered Batch */}
               <button
-                key={b}
-                onClick={() => setSelectedBatch(b)}
-                className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 ${
-                  selectedBatch === b
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-darkcard text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+                type="button"
+                onClick={() => {
+                  setFilterMode('registered');
+                  setSelectedBatch(registeredBatch);
+                }}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  filterMode === 'registered'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                {b === 'ALL' ? 'All Batches' : b}
+                <span>My Batch</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+                  filterMode === 'registered'
+                    ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-slate-300/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                }`}>
+                  {registeredBatch}
+                </span>
               </button>
-            ))}
+
+              {/* 2. All Batches */}
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterMode('all');
+                  setSelectedBatch('ALL');
+                }}
+                className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all text-center ${
+                  filterMode === 'all'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                All Batches
+              </button>
+
+              {/* 3. Custom Batch */}
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterMode('custom');
+                  if (customBatchInput.trim()) {
+                    setSelectedBatch(customBatchInput.trim().toUpperCase());
+                  } else {
+                    setSelectedBatch('');
+                  }
+                }}
+                className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all text-center ${
+                  filterMode === 'custom'
+                    ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Custom Batch
+              </button>
+            </div>
           </div>
+
+          {/* Custom Batch Input Panel when Custom Batch is active */}
+          {filterMode === 'custom' && (
+            <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={customBatchInput}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase();
+                    setCustomBatchInput(val);
+                    setSelectedBatch(val.trim());
+                  }}
+                  placeholder="Type any batch (e.g. 3CO1, 3CO2, 3ENC1)..."
+                  className="w-full px-3.5 py-2 pl-9 rounded-xl text-xs font-bold bg-white dark:bg-slate-900 border border-emerald-500/50 dark:border-emerald-500/50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 shadow-xs"
+                  autoFocus
+                />
+                <Search className="w-4 h-4 text-emerald-500 absolute left-3 top-2.5 pointer-events-none" />
+              </div>
+
+              {/* Quick Picks for common batches */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 shrink-0">
+                <span className="text-[10px] font-bold text-slate-400 shrink-0">Quick:</span>
+                {['3CO1', '3CO2', '3CO3', '3CO4', '3ENC1'].map(b => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => {
+                      setCustomBatchInput(b);
+                      setSelectedBatch(b);
+                    }}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors shrink-0 ${
+                      customBatchInput === b
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-400'
+                    }`}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Scrollable Broadcast Feed */}
@@ -164,13 +271,25 @@ export default function StudentBroadcastModal({ onClose }) {
               <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
               <p className="text-xs text-slate-500 dark:text-slate-400">Loading teacher announcements...</p>
             </div>
+          ) : filterMode === 'custom' && !selectedBatch ? (
+            <div className="py-14 text-center bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                <Search className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+                Enter a Custom Batch Code
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                Type a batch code like <strong>3CO1</strong>, <strong>3CO2</strong>, or <strong>3ENC1</strong> above to view broadcasts sent to that class.
+              </p>
+            </div>
           ) : announcements.length === 0 ? (
-            <div className="py-16 text-center bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 space-y-3">
+            <div className="py-14 text-center bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-                No New Teacher Messages for Batch {selectedBatch}
+                No New Teacher Messages for {selectedBatch === 'ALL' ? 'All Batches' : `Batch ${selectedBatch}`}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                 No active cancellations or announcements have been pinged to this batch. You are all up to date!
@@ -234,7 +353,7 @@ export default function StudentBroadcastModal({ onClose }) {
         {/* Footer */}
         <div className="p-4 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-100 dark:border-darkborder flex items-center justify-between text-xs">
           <span className="text-slate-500 text-[11px]">
-            Logged in as <strong className="text-slate-800 dark:text-slate-200">{user?.name}</strong> ({user?.batch || 'Batch 3P14'})
+            Logged in as <strong className="text-slate-800 dark:text-slate-200">{user?.name}</strong> ({user?.batch ? `Batch ${user.batch}` : `Batch ${registeredBatch}`})
           </span>
           <button
             onClick={onClose}
