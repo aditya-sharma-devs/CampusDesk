@@ -33,6 +33,9 @@ export default function DashboardPage() {
     return <StudentDashboardPage />;
   }
 
+  const isAdmin = user?.role === 'ADMIN';
+  const isFaculty = !isAdmin;
+
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [selectedDay, setSelectedDay] = useState('');
@@ -149,22 +152,59 @@ export default function DashboardPage() {
         {/* Filter & Controls Panel */}
         <div className="p-6 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm space-y-6">
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-thapar-500" />
-              <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                Availability Filters
-              </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-thapar-500" />
+                <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  Availability Filters
+                </h3>
+              </div>
+
+              {hasActiveFilters && (
+                <button
+                  onClick={resetFilters}
+                  className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/80"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Reset Filters
+                </button>
+              )}
             </div>
 
-            {hasActiveFilters && (
-              <button
-                onClick={resetFilters}
-                className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-                Reset Filters
-              </button>
+            {/* Only for Faculty: Total Classrooms and Available Now integrated into upper filter block right side */}
+            {isFaculty && (
+              <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+                {/* Total Classrooms */}
+                <div className="flex-1 sm:flex-initial flex items-center gap-3 px-4 py-2 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block leading-none">
+                      Total Classrooms
+                    </span>
+                    <span className="text-base font-black text-slate-900 dark:text-white leading-tight">
+                      {summary.totalClassrooms}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Available Now */}
+                <div className="flex-1 sm:flex-initial flex items-center gap-3 px-4 py-2 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/90 dark:border-emerald-800/80 shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block leading-none">
+                      Available Now
+                    </span>
+                    <span className="text-base font-black text-emerald-600 dark:text-emerald-400 leading-tight">
+                      {summary.availableCount}
+                    </span>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -238,80 +278,82 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* Summary Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
-          
-          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Total Classrooms
-              </p>
-              <p className="text-3xl font-black text-slate-900 dark:text-white mt-1">
-                {summary.totalClassrooms}
-              </p>
+        {/* Summary Metric Cards (Displayed only for Admin; for Faculty, Total & Available are in upper filter block) */}
+        {!isFaculty && (
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
+            
+            <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Total Classrooms
+                </p>
+                <p className="text-3xl font-black text-slate-900 dark:text-white mt-1">
+                  {summary.totalClassrooms}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
+                <Building2 className="w-6 h-6" />
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center">
-              <Building2 className="w-6 h-6" />
-            </div>
-          </div>
 
-          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                Available Now
-              </p>
-              <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
-                {summary.availableCount}
-              </p>
+            <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                  Available Now
+                </p>
+                <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                  {summary.availableCount}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-          </div>
 
-          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
-                Occupied Now
-              </p>
-              <p className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-1">
-                {summary.occupiedCount}
-              </p>
+            <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                  Occupied Now
+                </p>
+                <p className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-1">
+                  {summary.occupiedCount}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200 dark:border-rose-800">
+                <XCircle className="w-6 h-6" />
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200 dark:border-rose-800">
-              <XCircle className="w-6 h-6" />
-            </div>
-          </div>
 
-          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                Booked / Reserved
-              </p>
-              <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
-                {summary.bookedCount || 0}
-              </p>
+            <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                  Booked / Reserved
+                </p>
+                <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+                  {summary.bookedCount || 0}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
+                <CalendarCheck2 className="w-6 h-6" />
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
-              <CalendarCheck2 className="w-6 h-6" />
-            </div>
-          </div>
 
-          <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between col-span-2 sm:col-span-1">
-            <div>
-              <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                Issues / Maintenance
-              </p>
-              <p className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">
-                {summary.maintenanceCount || 0}
-              </p>
+            <div className="p-5 rounded-3xl bg-white dark:bg-darkcard border border-slate-200/90 dark:border-darkborder shadow-sm flex items-center justify-between col-span-2 sm:col-span-1">
+              <div>
+                <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                  Issues / Maintenance
+                </p>
+                <p className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">
+                  {summary.maintenanceCount || 0}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-800">
+                <Wrench className="w-6 h-6" />
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-800">
-              <Wrench className="w-6 h-6" />
-            </div>
-          </div>
 
-        </div>
+          </div>
+        )}
 
         {/* Classrooms Grid Area */}
         <div>
